@@ -67,9 +67,13 @@
   label:first-child{margin-top:0;}
   input, select{width:100%; min-width:0; max-width:100%; padding:12px 12px; font-size:16px; font-family:var(--font-body); border:1.5px solid var(--border); border-radius:11px; background:var(--bg); color:var(--text); transition:border-color .15s ease, box-shadow .15s ease;}
   input[type="date"], input[type="time"]{-webkit-appearance:none; appearance:none;}
+  /* iOS peint parfois ces champs 1-2px plus large que leur boîte CSS : on les enferme
+     dans un cadre qui rogne tout débordement, plutôt que de compter sur width/max-width. */
+  .field-clip{overflow:hidden; border-radius:11px;}
+  .row2 > div{flex:1; min-width:0; overflow:hidden; border-radius:11px;}
+  .nav .datepick{flex:1; min-width:0; text-align:center; overflow:hidden; border-radius:11px;}
   input:focus, select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light);}
   .row2{display:flex; gap:10px;}
-  .row2 > div{flex:1; min-width:0;}
 
   button{font-family:var(--font-body);}
   button.primary{width:100%; padding:14px; margin-top:18px; background:linear-gradient(155deg, var(--accent-3), var(--accent)); color:var(--on-accent); border:none; border-radius:12px; font-size:15.5px; font-weight:700; letter-spacing:.2px; box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); transition:transform .12s ease, box-shadow .12s ease;}
@@ -102,7 +106,6 @@
   .nav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px;}
   .nav button{background:var(--card); border:1px solid var(--border); border-radius:11px; width:42px; height:42px; font-size:18px; color:var(--accent); font-weight:700; flex-shrink:0; box-shadow:var(--shadow);}
   .nav button:active{transform:scale(.94);}
-  .nav .datepick{flex:1; min-width:0; text-align:center;}
   .nav .datepick input{text-align:center; font-weight:700;}
   .day-label{font-family:var(--font-display); font-weight:600; font-size:13.5px; margin-bottom:4px; text-wrap:balance;}
   .today-btn{display:block; margin:0 auto 14px; background:var(--accent-light); border:1px solid transparent; color:var(--accent); border-radius:20px; padding:7px 18px; font-size:12px; font-weight:700;}
@@ -393,7 +396,7 @@
     document.getElementById('viewNew').innerHTML = `
       <div class="card">
         <label>Date</label>
-        <input type="date" id="fDate" value="${todayStr()}">
+        <div class="field-clip"><input type="date" id="fDate" value="${todayStr()}"></div>
         <label>Catégorie</label>
         <select id="fPrestation"><option value="">Choisir…</option>${opts(PRESTATIONS)}</select>
         <label>Prestation précise</label>
@@ -491,7 +494,7 @@
         <div class="modal-card">
           <div class="modal-title">Modifier le rendez-vous</div>
           <label>Date</label>
-          <input type="date" id="eDate" value="${escapeHtml(d.date||"")}">
+          <div class="field-clip"><input type="date" id="eDate" value="${escapeHtml(d.date||"")}"></div>
           <div class="row2">
             <div>
               <label>Heure de début</label>
