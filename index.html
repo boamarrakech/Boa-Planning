@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0b09">
+<title>BOA Marrakech</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0b09; --card:#1a1512; --card-2:#211a15; --text:#faf8f4; --muted:#c9beb2;
+    --accent:#c8a96e; --accent-2:#8c7248; --accent-3:#e2c998; --on-accent:#171009;
+    --accent-light:rgba(200,169,110,.14); --border:rgba(200,169,110,.2);
+    --danger:#d97a5a; --today:rgba(143,191,154,.14); --today-text:#9fd3ab;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 22px rgba(0,0,0,.4);
+    --font-display:'Cormorant Garamond', 'Montserrat', serif;
+    --font-body:'Montserrat', -apple-system, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e0b09; --card:#1a1512; --card-2:#211a15; --text:#faf8f4; --muted:#c9beb2;
+      --accent:#c8a96e; --accent-2:#8c7248; --accent-3:#e2c998; --on-accent:#171009;
+      --accent-light:rgba(200,169,110,.14); --border:rgba(200,169,110,.2);
+      --danger:#d97a5a; --today:rgba(143,191,154,.14); --today-text:#9fd3ab;
+      --shadow: 0 1px 2px rgba(0,0,0,.45), 0 8px 24px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e0b09; --card:#1a1512; --card-2:#211a15; --text:#faf8f4; --muted:#c9beb2;
+    --accent:#c8a96e; --accent-2:#8c7248; --accent-3:#e2c998; --on-accent:#171009;
+    --accent-light:rgba(200,169,110,.14); --border:rgba(200,169,110,.2);
+    --danger:#d97a5a; --today:rgba(143,191,154,.14); --today-text:#9fd3ab;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 8px 24px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg); color:var(--text); font-family:var(--font-body); -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:640px; margin:0 auto; padding:18px 14px 60px; transition:max-width .15s ease;}
+  .wrap.wide{max-width:1440px;}
+
+  .brand{display:flex; align-items:center; gap:12px; margin-bottom:2px;}
+  .brand svg{flex-shrink:0; display:block;}
+  h1{font-family:var(--font-display); font-weight:600; font-size:26px; letter-spacing:.5px; margin:0; color:var(--text); text-wrap:balance;}
+  .sub{color:var(--accent); opacity:.85; font-size:10.5px; margin:3px 0 18px 47px; font-weight:600; text-transform:uppercase; letter-spacing:1.6px;}
+
+  .tabs{display:flex; gap:7px; margin-bottom:18px;}
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; padding:10px 4px 9px; border-radius:13px; background:var(--card); border:1px solid var(--border); font-size:11.5px; font-weight:600; color:var(--muted); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;}
+  .tab svg{opacity:.75; transition:opacity .15s ease;}
+  .tab.active{background:linear-gradient(155deg, var(--accent-3), var(--accent)); color:var(--on-accent); border-color:transparent; box-shadow:var(--shadow);}
+  .tab.active svg{opacity:1;}
+  .tab:active{transform:scale(.97);}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:17px; margin-bottom:14px; box-shadow:var(--shadow);}
+  .card-title{font-weight:700; font-size:13.5px; margin-bottom:12px; display:flex; align-items:center; gap:7px; letter-spacing:.1px;}
+  .card-title .dot{width:7px; height:7px; border-radius:50%; background:var(--accent); flex-shrink:0;}
+
+  label{display:block; font-size:12px; font-weight:700; color:var(--muted); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.4px;}
+  label:first-child{margin-top:0;}
+  input, select{width:100%; padding:12px 12px; font-size:16px; font-family:var(--font-body); border:1.5px solid var(--border); border-radius:11px; background:var(--bg); color:var(--text); transition:border-color .15s ease, box-shadow .15s ease;}
+  input:focus, select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light);}
+  .row2{display:flex; gap:10px;}
+  .row2 > div{flex:1;}
+
+  button{font-family:var(--font-body);}
+  button.primary{width:100%; padding:14px; margin-top:18px; background:linear-gradient(155deg, var(--accent-3), var(--accent)); color:var(--on-accent); border:none; border-radius:12px; font-size:15.5px; font-weight:700; letter-spacing:.2px; box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); transition:transform .12s ease, box-shadow .12s ease;}
+  button.primary:active{transform:translateY(1px); box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);}
+  button.primary:disabled{opacity:.5; box-shadow:none;}
+  button.secondary{background:var(--bg); color:var(--text); border:1.5px solid var(--border); border-radius:11px; padding:13px; font-size:14.5px; font-weight:700;}
+  button.danger{display:block; width:100%; background:none; border:1.5px solid var(--danger); color:var(--danger); border-radius:11px; padding:12px; font-size:13.5px; font-weight:700; margin-top:10px;}
+
+  .msg{margin-top:11px; font-size:13px; text-align:center; font-weight:600;}
+  .msg.ok{color:var(--today-text);}
+  .msg.err{color:var(--danger);}
+
+  .empty{color:var(--muted); text-align:center; padding:26px 10px; font-size:13.5px; font-weight:500;}
+
+  .kpis{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .kpi{flex:1; min-width:78px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 8px 11px; text-align:center; box-shadow:var(--shadow); position:relative; overflow:hidden;}
+  .kpi::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, var(--accent), var(--accent-2));}
+  .kpi .lbl{font-size:10.5px; color:var(--muted); font-weight:700; margin-bottom:5px; text-transform:uppercase; letter-spacing:.4px;}
+  .kpi .val{font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; color:var(--muted); font-size:10px; font-weight:700; padding:7px 4px; border-bottom:1.5px solid var(--border); text-transform:uppercase; letter-spacing:.3px;}
+  td{padding:10px 4px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums;}
+  td.num{text-align:right; font-weight:700;}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .status{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; color:var(--muted); text-align:center; margin-top:20px; font-weight:600;}
+  .status .pulse{width:6px; height:6px; border-radius:50%; background:var(--today-text); flex-shrink:0;}
+
+  .nav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px;}
+  .nav button{background:var(--card); border:1px solid var(--border); border-radius:11px; width:42px; height:42px; font-size:18px; color:var(--accent); font-weight:700; flex-shrink:0; box-shadow:var(--shadow);}
+  .nav button:active{transform:scale(.94);}
+  .nav .datepick{flex:1; text-align:center;}
+  .nav .datepick input{text-align:center; font-weight:700;}
+  .day-label{font-family:var(--font-display); font-weight:600; font-size:13.5px; margin-bottom:4px; text-wrap:balance;}
+  .today-btn{display:block; margin:0 auto 14px; background:var(--accent-light); border:1px solid transparent; color:var(--accent); border-radius:20px; padding:7px 18px; font-size:12px; font-weight:700;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:13px; padding:11px 12px; background:var(--card); border:1px solid var(--border); border-radius:12px;}
+  .legend span{display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-weight:600;}
+  .legend i{width:8px; height:8px; border-radius:2.5px; display:inline-block; flex-shrink:0;}
+
+  .grid-scroll{overflow-x:auto; border:1px solid var(--border); border-radius:14px; background:var(--card); -webkit-overflow-scrolling:touch; box-shadow:var(--shadow);}
+  .grid-inner{position:relative; display:flex; width:100%;}
+  .time-col{width:40px; flex-shrink:0; position:relative;}
+  .time-col .tick{position:absolute; left:0; right:0; font-size:9.5px; color:var(--muted); transform:translateY(-6px); padding-right:5px; text-align:right; font-weight:600;}
+  .emp-col{flex:1 1 88px; min-width:88px; position:relative; border-left:1px solid var(--border);}
+  .emp-head{position:sticky; top:0; background:var(--card); border-bottom:1.5px solid var(--border); padding:9px 3px; text-align:center; font-size:10.5px; font-weight:700; z-index:2;}
+  .emp-body{position:relative;}
+  .hline{position:absolute; left:0; right:0; border-top:1px solid var(--border); opacity:.6;}
+  .now-line{position:absolute; left:0; right:0; height:2px; background:var(--danger); z-index:4; border-radius:2px;}
+  .now-line::before{content:""; position:absolute; left:-4px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--danger); box-shadow:0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent);}
+  .now-tick{position:absolute; left:0; right:2px; font-size:9px; font-weight:800; color:var(--danger); background:var(--card); text-align:right; transform:translateY(-50%); z-index:4; padding-left:2px;}
+  .overlap-badge{position:absolute; z-index:5; left:2px; right:2px; background:var(--accent); color:var(--on-accent); font-size:9px; font-weight:800; padding:2px 1px; border-radius:8px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.4);}
+  .appt{position:absolute; border-radius:7px; padding:4px 6px; font-size:10px; color:#fff; overflow:hidden; line-height:1.32; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.18);}
+  .appt b{display:block; font-size:10.5px; margin-bottom:1px;}
+  .appt .cli{opacity:.92; display:flex; justify-content:space-between; align-items:baseline; gap:4px;}
+  .appt .cli > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .appt .price{font-weight:800; white-space:nowrap; flex-shrink:0;}
+
+  .modal-backdrop{position:fixed; inset:0; background:rgba(8,6,4,.68); z-index:100; display:flex; align-items:flex-end; justify-content:center;}
+  .modal-card{background:var(--card); width:100%; max-width:640px; max-height:88vh; overflow-y:auto; border-radius:20px 20px 0 0; padding:20px 16px 22px; box-shadow:0 -8px 30px rgba(0,0,0,.25);}
+  @media (min-width:700px){ .modal-backdrop{align-items:center;} .modal-card{border-radius:20px;} }
+  .modal-title{font-family:var(--font-display); font-weight:600; font-size:16px; margin-bottom:6px;}
+  .modal-actions{display:flex; gap:8px; margin-top:18px;}
+  .modal-actions button{flex:1; margin-top:0;}
+  .userbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:0 2px;}
+  .userbar .who{font-size:11.5px; color:var(--muted); font-weight:700;}
+  .userbar .who b{color:var(--text);}
+  .userbar .logout{font-size:11.5px; color:var(--accent); font-weight:700; cursor:pointer;}
+  #loadingScreen{text-align:center; padding:80px 20px; color:var(--muted); font-size:13px; font-weight:600;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">Chargement…</div>
+
+<div class="wrap" id="loginWrap" style="max-width:380px; display:none;">
+  <div class="brand">
+    <svg width="35" height="38" viewBox="0 0 35 38" aria-hidden="true" fill="none" stroke="#c8a96e" stroke-width="1.6">
+      <path d="M5 37V16.5a12.5 12.5 0 0 1 25 0V37"/>
+      <path d="M2.5 37h30" stroke-linecap="round"/>
+      <circle cx="17.5" cy="17" r="2.2" fill="#c8a96e" stroke="none"/>
+    </svg>
+    <h1>BOA Marrakech</h1>
+  </div>
+  <div class="sub">Planning &amp; chiffre d'affaires</div>
+  <div class="card" style="margin-top:20px;">
+    <div class="card-title"><span class="dot"></span>Connexion</div>
+    <label>E-mail</label>
+    <input type="email" id="loginEmail" autocomplete="username" autocapitalize="off">
+    <label>Mot de passe</label>
+    <input type="password" id="loginPassword" autocomplete="current-password">
+    <button class="primary" id="btnLogin" onclick="doLogin()">Se connecter</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none;">
+  <div class="brand">
+    <svg width="35" height="38" viewBox="0 0 35 38" aria-hidden="true" fill="none" stroke="#c8a96e" stroke-width="1.6">
+      <path d="M5 37V16.5a12.5 12.5 0 0 1 25 0V37"/>
+      <path d="M2.5 37h30" stroke-linecap="round"/>
+      <circle cx="17.5" cy="17" r="2.2" fill="#c8a96e" stroke="none"/>
+    </svg>
+    <h1>BOA Marrakech</h1>
+  </div>
+  <div class="sub">Planning &amp; chiffre d'affaires</div>
+  <div class="userbar">
+    <div class="who">Connecté : <b id="userBarName"></b></div>
+    <div class="logout" onclick="doLogout()">Se déconnecter</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tabNew" onclick="showTab('new')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      Rendez-vous
+    </div>
+    <div class="tab" id="tabPlanning" onclick="showTab('planning')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>
+      Planning
+    </div>
+    <div class="tab" id="tabCa" onclick="showTab('ca')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V13M12 20V6M20 20v-9"/></svg>
+      CA
+    </div>
+  </div>
+
+  <div id="viewNew"></div>
+  <div id="viewPlanning" style="display:none"></div>
+  <div id="viewCa" style="display:none"></div>
+
+  <div id="modalRoot" style="display:none"></div>
+
+  <div class="status" id="status"><span class="pulse"></span>Chargement…</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+  const PRESTATIONS = ["Manucure","Pédicure","Hammam","Massage","Coiffure","Épilation","Head Spa","Divers"];
+  const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Jihane"];
+  const JOURS = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const COLORS = {
+    "Manucure":"#c9548a","Pédicure":"#a15fd1","Hammam":"#3f9b8f","Massage":"#e08a4c",
+    "Coiffure":"#8c2f6b","Épilation":"#4a7fc9","Head Spa":"#5aa64e","Divers":"#8a7d76"
+  };
+  const DURATIONS = {
+    "Manucure":45,"Pédicure":45,"Hammam":60,"Massage":60,
+    "Coiffure":90,"Épilation":30,"Head Spa":45,"Divers":30
+  };
+  const START_H = 9, END_H = 22;
+  const PX_PER_MIN = 2.2;
+  const MIN_BLOCK_MIN = 32;
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJp6TdFZEBPoA4oKMiQi_RaDfyMSdHWes",
+    authDomain: "planning-boa.firebaseapp.com",
+    projectId: "planning-boa",
+    storageBucket: "planning-boa.firebasestorage.app",
+    messagingSenderId: "450126947184",
+    appId: "1:450126947184:web:ed4c0857f0560eab3d25b5"
+  };
+  // Associe chaque compte de connexion au nom affiché dans le journal des modifications.
+  const EMAIL_NAMES = {
+    "boaspamarrakech@gmail.com": "Hôtesse d'accueil",
+    "stivali54@gmail.com": "Emma",
+    "stringer.b54@gmail.com": "Jeremy",
+    "baena.ingrid@hotmail.com": "Ingrid"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  let db = null;
+  let currentUserName = "";
+  let allDocs = [];
+  let auditDocs = [];
+  let unsub = null;
+  let unsubAudit = null;
+  let planningDate = todayStr();
+
+  function todayStr(){
+    const d = new Date();
+    return fmtIso(d);
+  }
+  function fmtIso(d){
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function parseIso(s){
+    const [y,m,d] = s.split("-").map(Number);
+    return new Date(y, m-1, d);
+  }
+  function addDays(iso, n){
+    const d = parseIso(iso);
+    d.setDate(d.getDate()+n);
+    return fmtIso(d);
+  }
+  function monthPrefix(iso){ return iso.slice(0,7); }
+  function weekRange(iso){
+    const d = parseIso(iso);
+    const day = d.getDay();
+    const diffToMonday = (day === 0) ? -6 : 1 - day;
+    const monday = new Date(d); monday.setDate(d.getDate()+diffToMonday);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    return {start: fmtIso(monday), end: fmtIso(sunday)};
+  }
+  function fmtMoney(n){ return (Math.round(n*100)/100).toLocaleString("fr-FR")+" MAD"; }
+  function minsFromStart(t){
+    const parts = (t||"09:00").split(":");
+    const h = Number(parts[0])||0, m = Number(parts[1])||0;
+    return (h-START_H)*60 + m;
+  }
+  function isWithinOpeningHours(heure, heureFin){
+    const opens = String(START_H).padStart(2,"0")+":00";
+    const closes = String(END_H).padStart(2,"0")+":00";
+    return heure >= opens && heureFin <= closes;
+  }
+  function addMin(t, dur){
+    const parts = (t||"09:00").split(":");
+    const h = Number(parts[0])||0, m = Number(parts[1])||0;
+    const d = new Date(2000,0,1,h,m+dur);
+    return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+  function fmtLong(iso){
+    const d = parseIso(iso);
+    return JOURS[d.getDay()]+" "+d.getDate()+" "+MOIS[d.getMonth()]+" "+d.getFullYear();
+  }
+  function escapeHtml(s){
+    return String(s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  // Le PDF (police Helvetica standard) ne sait pas dessiner l'espace fine insécable
+  // que toLocaleString("fr-FR") utilise entre les milliers — ça décale tout le texte.
+  // On la remplace par un espace normal uniquement pour l'export PDF.
+  function pdfSafe(v){
+    return String(v==null ? "" : v).replace(/[  ]/g, " ");
+  }
+  function periodRows(from, to){
+    return allDocs.filter(d => d.date && d.date >= from && d.date <= to).sort((a,b)=>{
+      if((a.date||"")!==(b.date||"")) return (a.date||"") < (b.date||"") ? -1 : 1;
+      return (a.heure||"").localeCompare(b.heure||"");
+    });
+  }
+
+  function updatePeriodPreview(){
+    const from = (document.getElementById('periodFrom')||{}).value;
+    const to = (document.getElementById('periodTo')||{}).value;
+    const lblEl = document.getElementById('periodLabel');
+    const valEl = document.getElementById('periodVal');
+    if(!lblEl || !valEl) return;
+    if(!from || !to || to < from){
+      lblEl.textContent = "Choisis une période valide (Au ≥ Du).";
+      valEl.textContent = "—";
+      return;
+    }
+    const rows = periodRows(from, to);
+    const total = rows.reduce((s,d)=>s+(d.montant||0), 0);
+    const label = from===to ? fmtLong(from) : `${fmtLong(from)} → ${fmtLong(to)}`;
+    lblEl.textContent = `${label} · ${rows.length} rendez-vous`;
+    valEl.textContent = fmtMoney(total);
+  }
+
+  async function exportCa(){
+    const from = (document.getElementById('periodFrom')||{}).value;
+    const to = (document.getElementById('periodTo')||{}).value;
+    if(!from || !to){
+      alert("Choisis une date de début et une date de fin.");
+      return;
+    }
+    if(to < from){
+      alert("La date de fin doit être après (ou égale à) la date de début.");
+      return;
+    }
+    const rows = periodRows(from, to);
+    if(rows.length===0){
+      alert("Aucun rendez-vous sur cette période.");
+      return;
+    }
+    if(!window.jspdf){
+      alert("Le générateur PDF n'a pas pu se charger. Vérifie ta connexion et réessaie.");
+      return;
+    }
+    const periodLabel = from===to ? fmtLong(from) : `${fmtLong(from)} au ${fmtLong(to)}`;
+    const total = rows.reduce((s,d)=>s+(d.montant||0), 0);
+    const fileTag = from===to ? from : `${from}_au_${to}`;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:"pt"});
+    doc.setFont("helvetica","bold"); doc.setFontSize(16);
+    doc.text(pdfSafe("BOA Marrakech — Chiffre d'affaires"), 40, 44);
+    doc.setFont("helvetica","normal"); doc.setFontSize(11);
+    doc.text(pdfSafe(`Période : ${periodLabel}`), 40, 64);
+    doc.text(pdfSafe(`Total : ${fmtMoney(total)}  —  ${rows.length} rendez-vous`), 40, 80);
+    doc.autoTable({
+      startY: 96,
+      head: [["Date","Début","Fin","Employée","Prestation","Cliente","Montant"]],
+      body: rows.map(d=>[d.date||"", d.heure||"", d.heureFin||"", d.employee||"", d.prestationDetail||d.prestation||"", d.cliente||"", pdfSafe(fmtMoney(d.montant||0))]),
+      styles:{fontSize:8, cellPadding:4},
+      headStyles:{fillColor:[200,169,110], textColor:[23,16,9]},
+      margin:{left:40, right:40}
+    });
+    doc.save(`CA_BOA_Marrakech_${fileTag}.pdf`);
+  }
+
+  function showTab(which){
+    document.getElementById('viewNew').style.display = which==='new' ? '' : 'none';
+    document.getElementById('viewPlanning').style.display = which==='planning' ? '' : 'none';
+    document.getElementById('viewCa').style.display = which==='ca' ? '' : 'none';
+    document.getElementById('tabNew').classList.toggle('active', which==='new');
+    document.getElementById('tabPlanning').classList.toggle('active', which==='planning');
+    document.getElementById('tabCa').classList.toggle('active', which==='ca');
+    document.querySelector('.wrap').classList.toggle('wide', which==='planning');
+    if(which==='planning') renderPlanning();
+    if(which==='ca') renderCa();
+  }
+
+  function renderNewForm(){
+    const opts = arr => arr.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    document.getElementById('viewNew').innerHTML = `
+      <div class="card">
+        <label>Date</label>
+        <input type="date" id="fDate" value="${todayStr()}">
+        <label>Catégorie</label>
+        <select id="fPrestation"><option value="">Choisir…</option>${opts(PRESTATIONS)}</select>
+        <label>Prestation précise</label>
+        <input type="text" id="fPrestationDetail" placeholder="Ex : Manucure gel + nail art">
+        <label>Montant (MAD)</label>
+        <input type="number" id="fMontant" inputmode="decimal" placeholder="0">
+        <label>Employée</label>
+        <select id="fEmployee"><option value="">Choisir…</option>${opts(EMPLOYEES)}</select>
+        <label>Heure de début et de fin <span style="text-transform:none; font-weight:600; opacity:.7;">(approximatif)</span></label>
+        <div class="row2">
+          <div>
+            <input type="time" id="fHeureDebut" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
+          </div>
+          <div>
+            <input type="time" id="fHeureFin" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
+          </div>
+        </div>
+        <label>Cliente <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
+        <input type="text" id="fCliente" placeholder="Client de passage">
+        <button class="primary" id="btnSave" onclick="saveRdv()">Enregistrer</button>
+        <div class="msg" id="formMsg"></div>
+      </div>
+    `;
+  }
+
+  async function saveRdv(){
+    const date = document.getElementById('fDate').value;
+    const heure = document.getElementById('fHeureDebut').value;
+    const heureFin = document.getElementById('fHeureFin').value;
+    const cliente = document.getElementById('fCliente').value.trim();
+    const prestation = document.getElementById('fPrestation').value;
+    const prestationDetail = document.getElementById('fPrestationDetail').value.trim();
+    const employee = document.getElementById('fEmployee').value;
+    const montant = parseFloat(document.getElementById('fMontant').value);
+    const msg = document.getElementById('formMsg');
+
+    if(!date || !heure || !heureFin || !prestation || !employee || isNaN(montant)){
+      msg.textContent = "Remplis au moins : date, heure début, heure fin, catégorie, employée, montant.";
+      msg.className = "msg err";
+      return;
+    }
+    if(heureFin <= heure){
+      msg.textContent = "L'heure de fin doit être après l'heure de début.";
+      msg.className = "msg err";
+      return;
+    }
+    if(!isWithinOpeningHours(heure, heureFin)){
+      msg.textContent = `L'horaire doit être entre ${String(START_H).padStart(2,"0")}:00 et ${String(END_H).padStart(2,"0")}:00 (heures d'ouverture).`;
+      msg.className = "msg err";
+      return;
+    }
+    if(!db){
+      msg.textContent = "Connexion indisponible, réessaie dans un instant.";
+      msg.className = "msg err";
+      return;
+    }
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    try{
+      await db.collection("rendezvous").add({
+        date, heure, heureFin, cliente: cliente || "Client de passage",
+        prestation, prestationDetail: prestationDetail || prestation,
+        employee, montant,
+        createdAt: new Date().toISOString()
+      });
+      msg.textContent = "Rendez-vous enregistré ✓";
+      msg.className = "msg ok";
+      document.getElementById('fHeureDebut').value = "";
+      document.getElementById('fHeureFin').value = "";
+      document.getElementById('fCliente').value = "";
+      document.getElementById('fPrestation').value = "";
+      document.getElementById('fPrestationDetail').value = "";
+      document.getElementById('fEmployee').value = "";
+      document.getElementById('fMontant').value = "";
+    }catch(e){
+      msg.textContent = "Erreur : " + (e && e.message ? e.message : "réessaie.");
+      msg.className = "msg err";
+    }
+    btn.disabled = false;
+  }
+
+  async function deleteRdv(id){
+    if(!db) return;
+    try{
+      await db.collection("rendezvous").doc(id).delete();
+    }catch(e){}
+  }
+
+  function openEditRdv(id){
+    const d = allDocs.find(x=>x.id===id);
+    if(!d) return;
+    const opts = (arr, sel) => arr.map(v=>`<option value="${escapeHtml(v)}" ${v===sel?"selected":""}>${escapeHtml(v)}</option>`).join("");
+    document.getElementById('modalRoot').innerHTML = `
+      <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card">
+          <div class="modal-title">Modifier le rendez-vous</div>
+          <label>Date</label>
+          <input type="date" id="eDate" value="${escapeHtml(d.date||"")}">
+          <div class="row2">
+            <div>
+              <label>Heure de début</label>
+              <input type="time" id="eHeureDebut" value="${escapeHtml(d.heure||"")}" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
+            </div>
+            <div>
+              <label>Heure de fin</label>
+              <input type="time" id="eHeureFin" value="${escapeHtml(d.heureFin||"")}" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
+            </div>
+          </div>
+          <label>Montant (MAD)</label>
+          <input type="number" id="eMontant" inputmode="decimal" value="${d.montant||0}">
+          <label>Cliente</label>
+          <input type="text" id="eCliente" value="${escapeHtml(d.cliente||"")}">
+          <label>Catégorie</label>
+          <select id="ePrestation">${opts(PRESTATIONS, d.prestation)}</select>
+          <label>Prestation précise</label>
+          <input type="text" id="ePrestationDetail" value="${escapeHtml(d.prestationDetail||"")}">
+          <label>Employée</label>
+          <select id="eEmployee">${opts(EMPLOYEES, d.employee)}</select>
+          <div class="msg" id="editMsg"></div>
+          <div class="modal-actions">
+            <button class="secondary" onclick="closeModal()">Annuler</button>
+            <button class="primary" onclick="saveEditRdv('${id}')">Enregistrer</button>
+          </div>
+          <button class="danger" onclick="deleteFromModal('${id}')">Supprimer ce rendez-vous</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('modalRoot').style.display = 'block';
+  }
+
+  function closeModal(){
+    document.getElementById('modalRoot').style.display = 'none';
+    document.getElementById('modalRoot').innerHTML = '';
+  }
+
+  async function saveEditRdv(id){
+    const modifiePar = currentUserName;
+    const date = document.getElementById('eDate').value;
+    const heure = document.getElementById('eHeureDebut').value;
+    const heureFin = document.getElementById('eHeureFin').value;
+    const cliente = document.getElementById('eCliente').value.trim();
+    const prestation = document.getElementById('ePrestation').value;
+    const prestationDetail = document.getElementById('ePrestationDetail').value.trim();
+    const employee = document.getElementById('eEmployee').value;
+    const montant = parseFloat(document.getElementById('eMontant').value);
+    const msg = document.getElementById('editMsg');
+
+    if(!date || !heure || !heureFin || !prestation || !employee || isNaN(montant)){
+      msg.textContent = "Remplis tous les champs obligatoires.";
+      msg.className = "msg err";
+      return;
+    }
+    if(heureFin <= heure){
+      msg.textContent = "L'heure de fin doit être après l'heure de début.";
+      msg.className = "msg err";
+      return;
+    }
+    if(!isWithinOpeningHours(heure, heureFin)){
+      msg.textContent = `L'horaire doit être entre ${String(START_H).padStart(2,"0")}:00 et ${String(END_H).padStart(2,"0")}:00 (heures d'ouverture).`;
+      msg.className = "msg err";
+      return;
+    }
+    if(!db){
+      msg.textContent = "Connexion indisponible, réessaie dans un instant.";
+      msg.className = "msg err";
+      return;
+    }
+    const before = allDocs.find(x=>x.id===id);
+    const afterData = {
+      date, heure, heureFin, cliente: cliente || "Client de passage",
+      prestation, prestationDetail: prestationDetail || prestation,
+      employee, montant
+    };
+    try{
+      await db.collection("rendezvous").doc(id).update(afterData);
+      await logAudit('modification', id, before, afterData, modifiePar);
+      closeModal();
+    }catch(e){
+      msg.textContent = "Erreur : " + (e && e.message ? e.message : "réessaie.");
+      msg.className = "msg err";
+    }
+  }
+
+  async function deleteFromModal(id){
+    const modifiePar = currentUserName;
+    if(confirm("Supprimer ce rendez-vous ?")){
+      const before = allDocs.find(x=>x.id===id);
+      await deleteRdv(id);
+      await logAudit('suppression', id, before, null, modifiePar);
+      closeModal();
+    }
+  }
+
+  async function logAudit(action, rdvId, before, after, modifiePar){
+    if(!db || !before) return;
+    const snap = d => ({
+      date: d.date||"", heure: d.heure||"", heureFin: d.heureFin||"", employee: d.employee||"",
+      prestation: d.prestation||"", prestationDetail: d.prestationDetail||"", cliente: d.cliente||"", montant: d.montant||0
+    });
+    try{
+      await db.collection("audit_log").add({
+        action, rdvId, modifiePar,
+        before: snap(before),
+        after: after ? snap(after) : null,
+        at: new Date().toISOString()
+      });
+    }catch(e){}
+  }
+
+  function shiftPlanning(n){
+    planningDate = addDays(planningDate, n);
+    renderPlanning();
+  }
+  function jumpToday(){
+    planningDate = todayStr();
+    renderPlanning();
+  }
+  function onPlanningDateInput(v){
+    if(v){ planningDate = v; renderPlanning(); }
+  }
+
+  function renderPlanning(){
+    const dayItems = allDocs.filter(d=>d.date===planningDate);
+    const isToday = planningDate === todayStr();
+    const totalMin = (END_H-START_H)*60;
+    const bodyHeight = totalMin*PX_PER_MIN;
+
+    let ticks = "", hlines = "";
+    for(let h=START_H; h<=END_H; h++){
+      const top = (h-START_H)*60*PX_PER_MIN;
+      ticks += `<div class="tick" style="top:${top}px">${h}h</div>`;
+      hlines += `<div class="hline" style="top:${top}px"></div>`;
+    }
+
+    const now = new Date();
+    const nowStr = String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+    const nowMin = minsFromStart(nowStr);
+    const showNow = isToday && nowMin >= 0 && nowMin <= totalMin;
+    if(showNow){
+      const nowTop = nowMin*PX_PER_MIN;
+      ticks += `<div class="now-tick" style="top:${nowTop}px">${nowStr}</div>`;
+      hlines += `<div class="now-line" style="top:${nowTop}px"></div>`;
+    }
+
+    // Une seule piste globale : tous les rendez-vous, toutes employées confondues.
+    // On ne crée des colonnes côte à côte que lorsque des rendez-vous se chevauchent réellement.
+    const raw = dayItems.map(d=>{
+      const startMin = Math.max(0, minsFromStart(d.heure));
+      const realEndMin = d.heureFin ? minsFromStart(d.heureFin) : startMin + (DURATIONS[d.prestation] || 45);
+      const visualEndMin = Math.max(startMin+MIN_BLOCK_MIN, realEndMin);
+      return {d, startMin, realEndMin, visualEndMin};
+    }).sort((a,b)=>a.startMin-b.startMin);
+
+    const laneEnds = [];
+    raw.forEach(it=>{
+      let lane = laneEnds.findIndex(e => e <= it.startMin);
+      if(lane === -1){ lane = laneEnds.length; laneEnds.push(it.visualEndMin); }
+      else laneEnds[lane] = it.visualEndMin;
+      it.lane = lane;
+    });
+    const laneCount = Math.max(1, laneEnds.length);
+    const MIN_LANE_PX = 108; // largeur mini pour lire heure + employée + montant
+
+    // Regroupe les rendez-vous qui se chevauchent en clusters, pour afficher
+    // un badge "X en même temps" au-dessus de chaque groupe concerné.
+    const clusters = [];
+    raw.forEach(it=>{
+      const cur = clusters[clusters.length-1];
+      if(!cur || it.startMin >= cur.end){
+        clusters.push({start: it.startMin, end: it.visualEndMin, items:[it]});
+      } else {
+        cur.items.push(it);
+        cur.end = Math.max(cur.end, it.visualEndMin);
+      }
+    });
+    const badges = clusters.filter(cl=>cl.items.length>1).map(cl=>{
+      let maxConcurrent = 0;
+      cl.items.forEach(it=>{
+        const activeAt = cl.items.filter(o=> o.startMin <= it.startMin && o.visualEndMin > it.startMin).length;
+        maxConcurrent = Math.max(maxConcurrent, activeAt);
+      });
+      if(maxConcurrent < 2) return "";
+      const top = cl.start*PX_PER_MIN + 12;
+      return `<div class="overlap-badge" style="top:${top}px" title="${maxConcurrent} rendez-vous en même temps">×${maxConcurrent}</div>`;
+    }).join("");
+
+    const items = raw.map(it=>{
+      const d = it.d;
+      const top = it.startMin*PX_PER_MIN;
+      const h = (it.visualEndMin - it.startMin)*PX_PER_MIN;
+      const end = d.heureFin || addMin(d.heure, it.realEndMin - it.startMin);
+      const color = COLORS[d.prestation] || "#8a7d76";
+      const label = d.prestationDetail || d.prestation || "—";
+      const widthPct = 100/laneCount;
+      const leftPct = it.lane*widthPct;
+      return `<div class="appt" style="top:${top}px; height:${h}px; left:calc(${leftPct}% + 2px); width:calc(${widthPct}% - 4px); background:${color}" onclick="openEditRdv('${d.id}')">
+        <b>${escapeHtml(d.heure||"—")}–${escapeHtml(end)} · ${escapeHtml(d.employee||"—")}</b>
+        <div class="cli"><span>${escapeHtml(label)}</span><span class="price">${Math.round(d.montant||0)}</span></div>
+      </div>`;
+    }).join("");
+
+    const globalCol = `<div class="emp-col" style="flex:1 1 auto; min-width:0;">
+      <div class="emp-head">${dayItems.length} rendez-vous</div>
+      <div class="emp-body" style="height:${bodyHeight}px">${hlines}${items}</div>
+    </div>`;
+    const innerMinWidth = 40 + laneCount*MIN_LANE_PX;
+
+    document.getElementById('viewPlanning').innerHTML = `
+      <div class="nav">
+        <button onclick="shiftPlanning(-1)">‹</button>
+        <div class="datepick">
+          <div class="day-label">${fmtLong(planningDate)}</div>
+          <input type="date" value="${planningDate}" onchange="onPlanningDateInput(this.value)">
+        </div>
+        <button onclick="shiftPlanning(1)">›</button>
+      </div>
+      ${isToday ? '' : '<button class="today-btn" onclick="jumpToday()">Aujourd’hui</button>'}
+      <div class="legend">${Object.keys(COLORS).map(k=>`<span><i style="background:${COLORS[k]}"></i>${escapeHtml(k)}</span>`).join("")}</div>
+      <div class="grid-scroll">
+        <div class="grid-inner" style="min-width:${innerMinWidth}px">
+          <div class="time-col"><div class="emp-head">&nbsp;</div><div class="emp-body" style="height:${bodyHeight}px">${ticks}${badges}</div></div>
+          ${globalCol}
+        </div>
+      </div>
+      ${dayItems.length===0 ? '<div class="empty">Aucun rendez-vous ce jour</div>' : ''}
+    `;
+  }
+
+  function renderCa(){
+    const t = todayStr();
+    const m = monthPrefix(t);
+    const wk = weekRange(t);
+    let caToday=0, caWeek=0, caMonth=0, caTotal=0;
+    const perEmp = {};
+    EMPLOYEES.forEach(e => perEmp[e] = {today:0, week:0, month:0, total:0});
+
+    allDocs.forEach(d=>{
+      const amt = d.montant || 0;
+      const date = d.date || "";
+      caTotal += amt;
+      const isToday = date === t;
+      const isWeek = date >= wk.start && date <= wk.end;
+      const isMonth = date.startsWith(m);
+      if(isToday) caToday += amt;
+      if(isWeek) caWeek += amt;
+      if(isMonth) caMonth += amt;
+      if(perEmp[d.employee]){
+        perEmp[d.employee].total += amt;
+        if(isWeek) perEmp[d.employee].week += amt;
+        if(isMonth) perEmp[d.employee].month += amt;
+        if(isToday) perEmp[d.employee].today += amt;
+      }
+    });
+
+    const rows = EMPLOYEES.map(e=>`
+      <tr>
+        <td>${escapeHtml(e)}</td>
+        <td class="num">${fmtMoney(perEmp[e].today)}</td>
+        <td class="num">${fmtMoney(perEmp[e].week)}</td>
+        <td class="num">${fmtMoney(perEmp[e].month)}</td>
+        <td class="num">${fmtMoney(perEmp[e].total)}</td>
+      </tr>
+    `).join("");
+
+    const monthMap = {};
+    allDocs.forEach(d=>{
+      const date = d.date || "";
+      if(!date) return;
+      const key = date.slice(0,7);
+      monthMap[key] = (monthMap[key]||0) + (d.montant||0);
+    });
+    const monthKeys = Object.keys(monthMap).sort().reverse();
+    const historyRows = monthKeys.map(k=>{
+      const [y,mo] = k.split("-").map(Number);
+      const label = (MOIS[mo-1]||"") + " " + y;
+      return `<tr><td>${escapeHtml(label)}</td><td class="num">${fmtMoney(monthMap[k])}</td></tr>`;
+    }).join("");
+
+    const allDatesSorted = allDocs.map(d=>d.date).filter(Boolean).sort();
+    const minDate = allDatesSorted[0] || todayStr();
+    const maxDate = allDatesSorted[allDatesSorted.length-1] || todayStr();
+
+    document.getElementById('viewCa').innerHTML = `
+      <div class="card-title"><span class="dot"></span>CA de l'institut (toutes employées confondues)</div>
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Jour</div><div class="val">${fmtMoney(caToday)}</div></div>
+        <div class="kpi"><div class="lbl">Semaine</div><div class="val">${fmtMoney(caWeek)}</div></div>
+        <div class="kpi"><div class="lbl">Mois</div><div class="val">${fmtMoney(caMonth)}</div></div>
+        <div class="kpi"><div class="lbl">Total</div><div class="val">${fmtMoney(caTotal)}</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent-3)"></span>CA sur une période</div>
+        <div class="row2">
+          <div><label>Du</label><input type="date" id="periodFrom" value="${minDate}" onchange="updatePeriodPreview()"></div>
+          <div><label>Au</label><input type="date" id="periodTo" value="${maxDate}" onchange="updatePeriodPreview()"></div>
+        </div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; margin-top:14px;">
+          <div id="periodLabel" style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">—</div>
+          <div id="periodVal" style="font-family:var(--font-display); font-size:24px; font-weight:700; font-variant-numeric:tabular-nums;">—</div>
+        </div>
+        <button class="secondary" style="width:100%; margin-top:14px;" onclick="exportCa()">Télécharger en PDF</button>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent-2)"></span>Détail par employée</div>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Employée</th><th style="text-align:right">Jour</th><th style="text-align:right">Sem.</th><th style="text-align:right">Mois</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent-3)"></span>Historique mensuel (institut)</div>
+        ${monthKeys.length===0 ? '<div class="empty">Aucune donnée pour le moment</div>' : `
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Mois</th><th style="text-align:right">CA</th></tr></thead>
+          <tbody>${historyRows}</tbody>
+        </table>
+        </div>`}
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--danger)"></span>Journal des modifications</div>
+        ${renderAuditLog()}
+      </div>
+    `;
+    updatePeriodPreview();
+  }
+
+  function auditDiffLines(before, after){
+    if(!after) return [];
+    const fields = [
+      ["date","Date"], ["heure","Début"], ["heureFin","Fin"], ["employee","Employée"],
+      ["prestation","Catégorie"], ["prestationDetail","Prestation"], ["cliente","Cliente"], ["montant","Montant"]
+    ];
+    const lines = [];
+    fields.forEach(([key,label])=>{
+      const b = before ? before[key] : undefined;
+      const a = after[key];
+      if(String(b==null?"":b) !== String(a==null?"":a)){
+        const bv = key==="montant" ? fmtMoney(b||0) : (b || "—");
+        const av = key==="montant" ? fmtMoney(a||0) : (a || "—");
+        lines.push(`${label} : ${bv} → ${av}`);
+      }
+    });
+    return lines;
+  }
+
+  function renderAuditLog(){
+    if(auditDocs.length===0) return '<div class="empty">Aucune modification enregistrée pour le moment</div>';
+    const rowsHtml = auditDocs.map(a=>{
+      const b = a.before || {};
+      const isPast = b.date && b.date < todayStr();
+      const isDelete = a.action === 'suppression';
+      const actionLabel = isDelete ? 'Supprimé' : 'Modifié';
+      const actionColor = isDelete ? 'var(--danger)' : 'var(--accent)';
+      let when = "";
+      try{ when = new Date(a.at).toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}); }catch(e){ when = a.at || ""; }
+      const diffs = !isDelete ? auditDiffLines(b, a.after||{}) : [];
+      return `<div style="padding:11px 0; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px;">
+          <span style="font-weight:800; font-size:11.5px; color:${actionColor};">${actionLabel}</span>
+          <span style="font-size:10.5px; color:var(--muted);">${escapeHtml(when)}</span>
+        </div>
+        <div style="font-size:12.5px; margin-bottom:3px;">Rdv du ${escapeHtml(fmtLong(b.date||""))} à ${escapeHtml(b.heure||"—")} · ${escapeHtml(b.employee||"—")} · ${fmtMoney(b.montant||0)}${isPast ? ' <span style="color:var(--danger); font-weight:800;">· RDV déjà passé</span>' : ''}</div>
+        <div style="font-size:11.5px; color:var(--muted);">Par : ${escapeHtml(a.modifiePar||"—")}</div>
+        ${diffs.length ? `<div style="font-size:11.5px; color:var(--muted); margin-top:4px;">${diffs.map(escapeHtml).join('<br>')}</div>` : ''}
+      </div>`;
+    }).join("");
+    return `<div>${rowsHtml}</div>`;
+  }
+
+  function authErrorMsg(e){
+    const code = e && e.code || "";
+    if(code === "auth/invalid-email") return "Adresse e-mail invalide.";
+    if(code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") return "E-mail ou mot de passe incorrect.";
+    if(code === "auth/too-many-requests") return "Trop de tentatives, réessaie dans quelques minutes.";
+    if(code === "auth/network-request-failed") return "Pas de connexion internet.";
+    return "Connexion impossible, réessaie.";
+  }
+
+  async function doLogin(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+    const btn = document.getElementById('btnLogin');
+    if(!email || !password){
+      msg.textContent = "Entre ton e-mail et ton mot de passe.";
+      msg.className = "msg err";
+      return;
+    }
+    btn.disabled = true;
+    msg.textContent = "";
+    try{
+      await auth.signInWithEmailAndPassword(email, password);
+    }catch(e){
+      msg.textContent = authErrorMsg(e);
+      msg.className = "msg err";
+    }
+    btn.disabled = false;
+  }
+
+  function doLogout(){
+    if(unsub){ unsub(); unsub = null; }
+    if(unsubAudit){ unsubAudit(); unsubAudit = null; }
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged((user)=>{
+    document.getElementById('loadingScreen').style.display = 'none';
+    if(user){
+      currentUserName = EMAIL_NAMES[user.email] || user.email.split("@")[0];
+      document.getElementById('userBarName').textContent = currentUserName;
+      document.getElementById('loginWrap').style.display = 'none';
+      document.getElementById('appWrap').style.display = '';
+      document.getElementById('loginEmail').value = "";
+      document.getElementById('loginPassword').value = "";
+      document.getElementById('loginMsg').textContent = "";
+      startApp();
+    } else {
+      currentUserName = "";
+      if(unsub){ unsub(); unsub = null; }
+      if(unsubAudit){ unsubAudit(); unsubAudit = null; }
+      document.getElementById('appWrap').style.display = 'none';
+      document.getElementById('loginWrap').style.display = '';
+    }
+  });
+
+  async function startApp(){
+    renderNewForm();
+    const status = document.getElementById('status');
+    db = firebase.firestore();
+
+    status.innerHTML = '<span class="pulse"></span>Connecté — synchronisé en temps réel';
+
+    setInterval(()=>{
+      if(document.getElementById('viewPlanning').style.display !== 'none' && planningDate === todayStr()){
+        renderPlanning();
+      }
+    }, 60000);
+
+    unsub = db.collection("rendezvous").orderBy("createdAt","desc").limit(1000).onSnapshot(
+      (snap)=>{
+        allDocs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        if(document.getElementById('viewPlanning').style.display !== 'none') renderPlanning();
+        if(document.getElementById('viewCa').style.display !== 'none') renderCa();
+      },
+      (err)=>{
+        status.innerHTML = "Connexion perdue — recharge la page.";
+      }
+    );
+
+    unsubAudit = db.collection("audit_log").orderBy("at","desc").limit(200).onSnapshot(
+      (snap)=>{
+        auditDocs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        if(document.getElementById('viewCa').style.display !== 'none') renderCa();
+      },
+      (err)=>{}
+    );
+  }
+</script>
+</body>
+</html>
