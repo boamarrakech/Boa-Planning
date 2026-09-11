@@ -134,7 +134,8 @@
   .nav button:active{transform:scale(.94);}
   .nav .datepick input{text-align:center; font-weight:700;}
   .day-label{font-family:var(--font-display); font-weight:600; font-size:13.5px; margin-bottom:4px; text-wrap:balance;}
-  .today-btn{display:block; margin:0 auto 14px; background:var(--accent-light); border:1px solid transparent; color:var(--accent); border-radius:20px; padding:7px 18px; font-size:12px; font-weight:700;}
+  .today-btn{display:flex; align-items:center; justify-content:center; gap:5px; margin:0 auto 14px; background:var(--accent-light); border:1px solid transparent; color:var(--accent); border-radius:20px; padding:7px 18px 7px 14px; font-size:12px; font-weight:700;}
+  .today-btn svg{flex-shrink:0;}
 
   .legend{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:13px; padding:11px 12px; background:var(--card); border:1px solid var(--border); border-radius:12px;}
   .legend span{display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-weight:600;}
@@ -1067,7 +1068,7 @@
         </div>
         <button onclick="shiftPlanning(1)">›</button>
       </div>
-      ${isToday ? '' : '<button class="today-btn" onclick="jumpToday()">Aujourd’hui</button>'}
+      ${isToday ? '' : '<button class="today-btn" onclick="jumpToday()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Revenir à aujourd’hui</button>'}
       <div class="legend">${Object.keys(COLORS).map(k=>`<span><i style="background:${COLORS[k]}"></i>${escapeHtml(k)}</span>`).join("")}</div>
       <div class="grid-scroll">
         <div class="grid-inner" style="min-width:${innerMinWidth}px">
