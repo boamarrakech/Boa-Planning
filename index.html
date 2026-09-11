@@ -75,6 +75,32 @@
   input:focus, select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light);}
   .row2{display:flex; gap:10px;}
 
+  .cat-list-wrap{margin-top:10px;}
+  .cat-list-wrap .cat-hint{font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px;}
+  .cat-list{display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; padding-right:2px;}
+  .cat-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg); font-size:12.5px; font-weight:600; cursor:pointer; transition:border-color .15s ease, background .15s ease;}
+  .cat-check{width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; flex-shrink:0; position:relative;}
+  .cat-item.selected .cat-check{background:var(--accent); border-color:var(--accent);}
+  .cat-item.selected .cat-check::after{content:""; position:absolute; left:4px; top:1px; width:4px; height:8px; border:solid var(--on-accent); border-width:0 2px 2px 0; transform:rotate(45deg);}
+  .cat-label{flex:1; min-width:0;}
+  .cat-item .price{font-weight:800; color:var(--accent); flex-shrink:0; font-variant-numeric:tabular-nums;}
+  .cat-item.selected{border-color:var(--accent); background:var(--accent-light);}
+  .cat-item.selected .price{color:var(--accent-3);}
+  .cat-item.disabled{opacity:.45;}
+  .cat-item:active{transform:scale(.98);}
+  .cart{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .cart-chip{display:flex; align-items:center; gap:6px; background:var(--accent-light); color:var(--accent-3); border:1px solid var(--border); border-radius:20px; padding:6px 6px 6px 12px; font-size:11px; font-weight:700;}
+  .cart-chip .x{cursor:pointer; width:16px; height:16px; border-radius:50%; background:var(--card-2); display:flex; align-items:center; justify-content:center; font-size:12px; line-height:1; color:var(--muted); flex-shrink:0;}
+  .custom-add{display:flex; gap:8px; margin-top:10px;}
+  .custom-add input[type="text"]{flex:2; min-width:0;}
+  .custom-add input[type="number"]{flex:1; min-width:0;}
+  .custom-add button{flex-shrink:0; padding:0 14px; border-radius:11px; border:1.5px solid var(--border); background:var(--bg); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; font-family:var(--font-body);}
+  .reduc-row{display:flex; gap:8px;}
+  .reduc-row input{flex:1; min-width:0;}
+  .seg{display:flex; border:1.5px solid var(--border); border-radius:11px; overflow:hidden; flex-shrink:0;}
+  .seg-btn{padding:0 15px; background:var(--bg); color:var(--muted); font-size:13px; font-weight:700; border:none; cursor:pointer; font-family:var(--font-body);}
+  .seg-btn.active{background:var(--accent); color:var(--on-accent);}
+
   button{font-family:var(--font-body);}
   button.primary{width:100%; padding:14px; margin-top:18px; background:linear-gradient(155deg, var(--accent-3), var(--accent)); color:var(--on-accent); border:none; border-radius:12px; font-size:15.5px; font-weight:700; letter-spacing:.2px; box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); transition:transform .12s ease, box-shadow .12s ease;}
   button.primary:active{transform:translateY(1px); box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);}
@@ -215,21 +241,129 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
-  const PRESTATIONS = ["Manucure","Pédicure","Hammam","Massage","Coiffure","Épilation","Head Spa","Divers"];
+  const PRESTATIONS = ["Manucure","Pédicure","Hammam","Massage","Coiffure","Épilation","Head Spa","Sur mesure"];
+  const CUSTOM_CAT = "Sur mesure";
   const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Jihane"];
   const JOURS = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const COLORS = {
     "Manucure":"#c9548a","Pédicure":"#a15fd1","Hammam":"#3f9b8f","Massage":"#e08a4c",
-    "Coiffure":"#8c2f6b","Épilation":"#4a7fc9","Head Spa":"#5aa64e","Divers":"#8a7d76"
+    "Coiffure":"#8c2f6b","Épilation":"#4a7fc9","Head Spa":"#5aa64e","Sur mesure":"#8a7d76"
   };
   const DURATIONS = {
     "Manucure":45,"Pédicure":45,"Hammam":60,"Massage":60,
-    "Coiffure":90,"Épilation":30,"Head Spa":45,"Divers":30
+    "Coiffure":90,"Épilation":30,"Head Spa":45,"Sur mesure":30
   };
   const START_H = 9, END_H = 22;
   const PX_PER_MIN = 2.2;
   const MIN_BLOCK_MIN = 32;
+
+  // Catalogue de tarifs réels (boa-marrakech.com), par catégorie. "Sur mesure" reste libre.
+  const CATALOGUE = {
+    "Head Spa": [
+      {label:"Head Spa Évasion (1h)", price:500},
+      {label:"Head Spa Renaissance (1h15)", price:700},
+      {label:"Head Spa Mémorable (1h30)", price:1000}
+    ],
+    "Hammam": [
+      {label:"Hammam Beldi (30 min)", price:200},
+      {label:"Hammam Royal (45 min)", price:250},
+      {label:"Hammam 30 min + Massage 30 min", price:400},
+      {label:"Hammam 45 min + Massage 45 min", price:500},
+      {label:"Hammam 1h + Massage 1h", price:600},
+      {label:"Hammam 1h + Massage 1h30", price:800},
+      {label:"BOA Spa Signature (2h)", price:1000}
+    ],
+    "Massage": [
+      {label:"Massage Kobido (30 min)", price:500},
+      {label:"Massage Kobido (1h)", price:1000},
+      {label:"Massage Relaxant/Tonifiant (30 min)", price:300},
+      {label:"Massage Relaxant/Tonifiant (1h)", price:400},
+      {label:"Massage Thaïlandais (30 min)", price:350},
+      {label:"Massage Thaïlandais (1h)", price:550},
+      {label:"Massage Thaï + Hammam (30 min)", price:550},
+      {label:"Massage Thaï + Hammam (1h)", price:750},
+      {label:"Massage Thaï + Hammam (1h30)", price:900},
+      {label:"Drainage Lymphatique (30 min)", price:350},
+      {label:"Drainage Lymphatique (1h)", price:700},
+      {label:"Drainage Lymphatique — Cure 5 séances", price:1500},
+      {label:"Drainage Lymphatique — Cure 10 séances", price:3000},
+      {label:"Drainage + Madérothérapie (30 min)", price:400},
+      {label:"Drainage + Madérothérapie (1h)", price:800},
+      {label:"Drainage + Madérothérapie — Cure 5 séances", price:1800},
+      {label:"Drainage + Madérothérapie — Cure 10 séances", price:3600}
+    ],
+    "Coiffure": [
+      {label:"Brushing (Court)", price:100},
+      {label:"Brushing (Mi-long)", price:100},
+      {label:"Brushing (Long)", price:100},
+      {label:"Brushing (Extra-long)", price:150},
+      {label:"Brushing + Coupe (Court)", price:400},
+      {label:"Brushing + Coupe (Mi-long)", price:400},
+      {label:"Brushing + Coupe (Long)", price:400},
+      {label:"Brushing + Coupe (Extra-long)", price:450},
+      {label:"Coupe Cheveux Bouclés (Court)", price:350},
+      {label:"Coupe Cheveux Bouclés (Mi-long)", price:400},
+      {label:"Coupe Cheveux Bouclés (Long)", price:450},
+      {label:"Coupe Cheveux Bouclés (Extra-long)", price:500},
+      {label:"Supplément Wavy", price:50},
+      {label:"Balayage/Ombré (Court)", price:950},
+      {label:"Balayage/Ombré (Mi-long)", price:1100},
+      {label:"Balayage/Ombré (Long)", price:1300},
+      {label:"Balayage/Ombré (Extra-long)", price:1500},
+      {label:"Patine (Court)", price:300},
+      {label:"Patine (Mi-long)", price:350},
+      {label:"Patine (Long)", price:400},
+      {label:"Patine (Extra-long)", price:450},
+      {label:"Coloration Tête Complète (Court)", price:300},
+      {label:"Coloration Tête Complète (Mi-long)", price:400},
+      {label:"Coloration Tête Complète (Long)", price:500},
+      {label:"Coloration Tête Complète (Extra-long)", price:600},
+      {label:"Coloration Racines (Court)", price:220},
+      {label:"Coloration Racines (Mi-long)", price:270},
+      {label:"Coloration Racines (Long)", price:300},
+      {label:"Coloration Racines (Extra-long)", price:350}
+    ],
+    "Manucure": [
+      {label:"Dépose", price:50},
+      {label:"Pose de Vernis Simple", price:50},
+      {label:"Pose de Vernis Semi-Permanent", price:150},
+      {label:"Manucure Classique", price:130},
+      {label:"Pack Beauté Manucure", price:250},
+      {label:"+ Vernis Semi-Permanent (supplément)", price:100}
+    ],
+    "Pédicure": [
+      {label:"Dépose", price:50},
+      {label:"Pose de Vernis Simple", price:50},
+      {label:"Pose de Vernis Semi-Permanent", price:150},
+      {label:"Pédicure Classique", price:150},
+      {label:"Pack Beauté Pédicure", price:300},
+      {label:"+ Vernis Semi-Permanent (supplément)", price:100}
+    ],
+    "Épilation": [
+      {label:"Duvet", price:40},
+      {label:"Menton", price:30},
+      {label:"Sourcils", price:50},
+      {label:"Aisselles", price:50},
+      {label:"Bras", price:60},
+      {label:"Visage", price:100},
+      {label:"Jambes", price:100},
+      {label:"Maillot", price:100}
+    ]
+  };
+  // Le supplément Vernis Semi-Permanent ne peut s'ajouter qu'à l'une de ces prestations
+  // de base précises (pas à une Dépose ou une Pose de vernis seule, par exemple).
+  const SUPP_LABEL = "+ Vernis Semi-Permanent (supplément)";
+  const SUPP_REQUIRES = {
+    "Manucure": ["Manucure Classique", "Pack Beauté Manucure"],
+    "Pédicure": ["Pédicure Classique", "Pack Beauté Pédicure"]
+  };
+  let fBasePrice = null;
+  let eBasePrice = null;
+  // Panier de prestations sélectionnées (potentiellement dans plusieurs catégories
+  // différentes pour un même rendez-vous) : {cat, idx, label, price}
+  let fCart = [];
+  let eCart = [];
 
   const firebaseConfig = {
     apiKey: "AIzaSyBJp6TdFZEBPoA4oKMiQi_RaDfyMSdHWes",
@@ -391,6 +525,177 @@
     if(which==='ca') renderCa();
   }
 
+  function renderCatalogueList(which, cat){
+    const container = document.getElementById(which+'CatList');
+    if(!container) return;
+    if(cat === CUSTOM_CAT){
+      container.innerHTML = `
+        <div class="cat-hint">Prestation sur mesure — indique un nom et un prix</div>
+        <div class="custom-add">
+          <input type="text" id="${which}CustomLabel" placeholder="Nom de la prestation">
+          <input type="number" id="${which}CustomPrice" inputmode="decimal" placeholder="Prix">
+          <button type="button" onclick="addCustomItem('${which}')">+ Ajouter</button>
+        </div>
+      `;
+      return;
+    }
+    const items = CATALOGUE[cat];
+    if(!cat || !items || items.length===0){
+      container.innerHTML = "";
+      return;
+    }
+    const cart = which==='f' ? fCart : eCart;
+    const bases = SUPP_REQUIRES[cat];
+    const suppReady = bases ? cartHasQualifyingBase(which, cat) : true;
+    container.innerHTML = `
+      <div class="cat-hint">Tarifs ${escapeHtml(cat)} — touche un ou plusieurs tarifs</div>
+      <div class="cat-list">
+        ${items.map((it,idx)=>{
+          const isSel = cart.some(c=>c.cat===cat && c.idx===idx);
+          const isLockedSupp = it.label===SUPP_LABEL && bases && !isSel && !suppReady;
+          return `<div class="cat-item ${isSel?'selected':''} ${isLockedSupp?'disabled':''}" onclick="toggleCatalogueItem('${which}',${idx})">
+            <span class="cat-check"></span>
+            <span class="cat-label">${escapeHtml(it.label)}</span><span class="price">${it.price} MAD</span>
+          </div>`;
+        }).join("")}
+      </div>
+      ${bases ? `<div class="cat-hint" style="margin-top:8px; margin-bottom:0;">Le supplément vernis ne s'ajoute qu'à : ${bases.map(escapeHtml).join(" ou ")}.</div>` : ""}
+    `;
+  }
+
+  function cartHasQualifyingBase(which, cat){
+    const cart = which==='f' ? fCart : eCart;
+    const bases = SUPP_REQUIRES[cat] || [];
+    return cart.some(c=>c.cat===cat && bases.includes(c.label));
+  }
+
+  function renderCart(which){
+    const el = document.getElementById(which+'Cart');
+    if(!el) return;
+    const cart = which==='f' ? fCart : eCart;
+    if(!cart.length){ el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="cart">${cart.map((c,i)=>
+      `<div class="cart-chip">${escapeHtml(c.label)} · ${c.price} MAD<span class="x" onclick="removeCartItem('${which}',${i})">×</span></div>`
+    ).join("")}</div>`;
+  }
+
+  // La catégorie ne sert qu'à parcourir le catalogue à afficher — elle ne remet
+  // jamais à zéro le panier ni la réduction déjà en cours (on peut naviguer entre
+  // catégories pour ajouter plusieurs prestations à un même rendez-vous).
+  function onCategoryChange(which){
+    const cat = document.getElementById(which+'Prestation').value;
+    renderCatalogueList(which, cat);
+  }
+
+  function toggleCatalogueItem(which, idx){
+    const cat = document.getElementById(which+'Prestation').value;
+    const item = (CATALOGUE[cat]||[])[idx];
+    if(!item) return;
+    const cart = which==='f' ? fCart : eCart;
+    const pos = cart.findIndex(c=>c.cat===cat && c.idx===idx);
+    const bases = SUPP_REQUIRES[cat];
+
+    if(pos===-1 && item.label===SUPP_LABEL && bases && !cartHasQualifyingBase(which, cat)){
+      alert(`Le supplément vernis semi-permanent ne peut s'ajouter qu'avec : ${bases.join(" ou ")}.`);
+      return;
+    }
+
+    if(pos===-1) cart.push({cat, idx, label:item.label, price:item.price});
+    else cart.splice(pos,1);
+
+    // Si on vient de retirer une prestation de base, le supplément vernis associé
+    // (déjà dans le panier) n'a plus lieu d'être : on l'enlève aussi.
+    if(pos!==-1 && bases && bases.includes(item.label) && !cartHasQualifyingBase(which, cat)){
+      for(let i=cart.length-1; i>=0; i--){
+        if(cart[i].cat===cat && cart[i].label===SUPP_LABEL) cart.splice(i,1);
+      }
+    }
+
+    recomputeFromCart(which);
+    renderCatalogueList(which, cat);
+    renderCart(which);
+  }
+
+  // Prestation sur mesure, absente du catalogue : on lui donne cat:null (elle n'est
+  // rattachée à aucune catégorie du catalogue) et elle rejoint le panier comme les autres.
+  function addCustomItem(which){
+    const labelEl = document.getElementById(which+'CustomLabel');
+    const priceEl = document.getElementById(which+'CustomPrice');
+    const label = labelEl.value.trim();
+    const price = parseFloat(priceEl.value);
+    if(!label || isNaN(price)){
+      alert("Indique un nom et un prix pour la prestation sur mesure.");
+      return;
+    }
+    const cart = which==='f' ? fCart : eCart;
+    cart.push({cat:null, idx:null, label, price});
+    labelEl.value = "";
+    priceEl.value = "";
+    recomputeFromCart(which);
+    renderCart(which);
+  }
+
+  function removeCartItem(which, cartIndex){
+    const cart = which==='f' ? fCart : eCart;
+    cart.splice(cartIndex, 1);
+    recomputeFromCart(which);
+    renderCatalogueList(which, document.getElementById(which+'Prestation').value);
+    renderCart(which);
+  }
+
+  function recomputeFromCart(which){
+    const cart = which==='f' ? fCart : eCart;
+    document.getElementById(which+'PrestationDetail').value = cart.map(c=>c.label).join(" + ");
+    if(cart.length){
+      const sum = cart.reduce((s,c)=>s+c.price, 0);
+      if(which==='f') fBasePrice = sum; else eBasePrice = sum;
+      applyReduction(which);
+    } else {
+      if(which==='f') fBasePrice = null; else eBasePrice = null;
+    }
+  }
+
+  function setReducType(which, type){
+    const seg = document.getElementById(which+'ReducSeg');
+    if(!seg) return;
+    seg.dataset.type = type;
+    seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.type===type));
+    applyReduction(which);
+  }
+
+  function resetReduc(which){
+    const seg = document.getElementById(which+'ReducSeg');
+    if(seg){
+      seg.dataset.type = 'MAD';
+      seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.type==='MAD'));
+    }
+    const rv = document.getElementById(which+'ReducValue');
+    if(rv) rv.value = '';
+  }
+
+  function applyReduction(which){
+    const base = which==='f' ? fBasePrice : eBasePrice;
+    if(base==null) return;
+    const seg = document.getElementById(which+'ReducSeg');
+    const type = seg ? (seg.dataset.type||'MAD') : 'MAD';
+    const val = parseFloat(document.getElementById(which+'ReducValue').value) || 0;
+    let final = type==='%' ? base - (base*val/100) : base - val;
+    if(final < 0) final = 0;
+    document.getElementById(which+'Montant').value = Math.round(final*100)/100;
+  }
+
+  // Quand le montant est tapé à la main (sans réduction active), il devient
+  // lui-même la nouvelle base — ainsi une réduction peut s'appliquer même
+  // sur un prix hors catalogue (catégorie "Sur mesure", tarif spécial, etc.).
+  function onMontantInput(which){
+    const rv = parseFloat(document.getElementById(which+'ReducValue').value) || 0;
+    if(rv === 0){
+      const v = parseFloat(document.getElementById(which+'Montant').value);
+      if(which==='f') fBasePrice = isNaN(v) ? null : v;
+      else eBasePrice = isNaN(v) ? null : v;
+    }
+  }
+
   function renderNewForm(){
     const opts = arr => arr.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
     document.getElementById('viewNew').innerHTML = `
@@ -398,11 +703,21 @@
         <label>Date</label>
         <div class="field-clip"><input type="date" id="fDate" value="${todayStr()}"></div>
         <label>Catégorie</label>
-        <select id="fPrestation"><option value="">Choisir…</option>${opts(PRESTATIONS)}</select>
-        <label>Prestation précise</label>
+        <select id="fPrestation" onchange="onCategoryChange('f')"><option value="">Choisir…</option>${opts(PRESTATIONS)}</select>
+        <div class="cat-list-wrap" id="fCatList"></div>
+        <div id="fCart"></div>
+        <label>Détail de la prestation</label>
         <input type="text" id="fPrestationDetail" placeholder="Ex : Manucure gel + nail art">
+        <label>Réduction <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
+        <div class="reduc-row">
+          <div class="seg" id="fReducSeg" data-type="MAD">
+            <button type="button" class="seg-btn active" data-type="MAD" onclick="setReducType('f','MAD')">MAD</button>
+            <button type="button" class="seg-btn" data-type="%" onclick="setReducType('f','%')">%</button>
+          </div>
+          <input type="number" id="fReducValue" inputmode="decimal" placeholder="0" oninput="applyReduction('f')">
+        </div>
         <label>Montant (MAD)</label>
-        <input type="number" id="fMontant" inputmode="decimal" placeholder="0">
+        <input type="number" id="fMontant" inputmode="decimal" placeholder="0" oninput="onMontantInput('f')">
         <label>Employée</label>
         <select id="fEmployee"><option value="">Choisir…</option>${opts(EMPLOYEES)}</select>
         <label>Heure de début et de fin <span style="text-transform:none; font-weight:600; opacity:.7;">(approximatif)</span></label>
@@ -427,13 +742,17 @@
     const heure = document.getElementById('fHeureDebut').value;
     const heureFin = document.getElementById('fHeureFin').value;
     const cliente = document.getElementById('fCliente').value.trim();
-    const prestation = document.getElementById('fPrestation').value;
+    const prestationSelect = document.getElementById('fPrestation').value;
     const prestationDetail = document.getElementById('fPrestationDetail').value.trim();
     const employee = document.getElementById('fEmployee').value;
     const montant = parseFloat(document.getElementById('fMontant').value);
     const msg = document.getElementById('formMsg');
+    // Si plusieurs prestations de catégories différentes ont été ajoutées au panier,
+    // la catégorie enregistrée combine les catégories concernées (ex: "Manucure + Pédicure").
+    const cartCats = [...new Set(fCart.map(c=>c.cat).filter(Boolean))];
+    const prestation = cartCats.length ? (cartCats.length===1 ? cartCats[0] : cartCats.join(" + ")) : prestationSelect;
 
-    if(!date || !heure || !heureFin || !prestation || !employee || isNaN(montant)){
+    if(!date || !heure || !heureFin || !prestationSelect || !employee || isNaN(montant)){
       msg.textContent = "Remplis au moins : date, heure début, heure fin, catégorie, employée, montant.";
       msg.className = "msg err";
       return;
@@ -471,6 +790,11 @@
       document.getElementById('fPrestationDetail').value = "";
       document.getElementById('fEmployee').value = "";
       document.getElementById('fMontant').value = "";
+      fBasePrice = null;
+      fCart = [];
+      resetReduc('f');
+      renderCatalogueList('f', '');
+      renderCart('f');
     }catch(e){
       msg.textContent = "Erreur : " + (e && e.message ? e.message : "réessaie.");
       msg.className = "msg err";
@@ -489,6 +813,11 @@
     const d = allDocs.find(x=>x.id===id);
     if(!d) return;
     const opts = (arr, sel) => arr.map(v=>`<option value="${escapeHtml(v)}" ${v===sel?"selected":""}>${escapeHtml(v)}</option>`).join("");
+    // Si la catégorie enregistrée combine plusieurs catégories (ex: "Manucure + Pédicure"),
+    // elle ne correspond à aucune option de la liste : on l'ajoute pour ne pas la perdre.
+    const prestationOpts = PRESTATIONS.includes(d.prestation)
+      ? opts(PRESTATIONS, d.prestation)
+      : `<option value="${escapeHtml(d.prestation||"")}" selected>${escapeHtml(d.prestation||"—")}</option>` + opts(PRESTATIONS, "");
     document.getElementById('modalRoot').innerHTML = `
       <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
         <div class="modal-card">
@@ -505,14 +834,24 @@
               <input type="time" id="eHeureFin" value="${escapeHtml(d.heureFin||"")}" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
             </div>
           </div>
-          <label>Montant (MAD)</label>
-          <input type="number" id="eMontant" inputmode="decimal" value="${d.montant||0}">
           <label>Cliente</label>
           <input type="text" id="eCliente" value="${escapeHtml(d.cliente||"")}">
           <label>Catégorie</label>
-          <select id="ePrestation">${opts(PRESTATIONS, d.prestation)}</select>
-          <label>Prestation précise</label>
+          <select id="ePrestation" onchange="onCategoryChange('e')">${prestationOpts}</select>
+          <div class="cat-list-wrap" id="eCatList"></div>
+          <div id="eCart"></div>
+          <label>Détail de la prestation</label>
           <input type="text" id="ePrestationDetail" value="${escapeHtml(d.prestationDetail||"")}">
+          <label>Réduction <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
+          <div class="reduc-row">
+            <div class="seg" id="eReducSeg" data-type="MAD">
+              <button type="button" class="seg-btn active" data-type="MAD" onclick="setReducType('e','MAD')">MAD</button>
+              <button type="button" class="seg-btn" data-type="%" onclick="setReducType('e','%')">%</button>
+            </div>
+            <input type="number" id="eReducValue" inputmode="decimal" placeholder="0" oninput="applyReduction('e')">
+          </div>
+          <label>Montant (MAD)</label>
+          <input type="number" id="eMontant" inputmode="decimal" value="${d.montant||0}" oninput="onMontantInput('e')">
           <label>Employée</label>
           <select id="eEmployee">${opts(EMPLOYEES, d.employee)}</select>
           <div class="msg" id="editMsg"></div>
@@ -525,6 +864,19 @@
       </div>
     `;
     document.getElementById('modalRoot').style.display = 'block';
+    // Reconstruit le panier à partir du libellé enregistré, en cherchant chaque
+    // partie dans toutes les catégories (pas seulement la catégorie stockée), pour
+    // retrouver aussi les rendez-vous combinant plusieurs catégories.
+    eCart = [];
+    (d.prestationDetail||"").split(" + ").map(s=>s.trim()).filter(Boolean).forEach(label=>{
+      for(const cat in CATALOGUE){
+        const idx = CATALOGUE[cat].findIndex(it=>it.label===label);
+        if(idx!==-1){ eCart.push({cat, idx, label, price:CATALOGUE[cat][idx].price}); break; }
+      }
+    });
+    eBasePrice = eCart.length ? eCart.reduce((s,c)=>s+c.price,0) : (d.montant || null);
+    renderCatalogueList('e', d.prestation);
+    renderCart('e');
   }
 
   function closeModal(){
@@ -538,11 +890,13 @@
     const heure = document.getElementById('eHeureDebut').value;
     const heureFin = document.getElementById('eHeureFin').value;
     const cliente = document.getElementById('eCliente').value.trim();
-    const prestation = document.getElementById('ePrestation').value;
+    const prestationSelect = document.getElementById('ePrestation').value;
     const prestationDetail = document.getElementById('ePrestationDetail').value.trim();
     const employee = document.getElementById('eEmployee').value;
     const montant = parseFloat(document.getElementById('eMontant').value);
     const msg = document.getElementById('editMsg');
+    const cartCats = [...new Set(eCart.map(c=>c.cat).filter(Boolean))];
+    const prestation = cartCats.length ? (cartCats.length===1 ? cartCats[0] : cartCats.join(" + ")) : prestationSelect;
 
     if(!date || !heure || !heureFin || !prestation || !employee || isNaN(montant)){
       msg.textContent = "Remplis tous les champs obligatoires.";
