@@ -76,7 +76,7 @@
   .row2{display:flex; gap:10px;}
 
   .cat-list-wrap{margin-top:10px;}
-  .cat-list-wrap .cat-hint{font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px;}
+  .cat-hint{font-size:11px; color:var(--muted); font-weight:600; margin-bottom:8px;}
   .cat-list{display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; padding-right:2px;}
   .cat-item{display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg); font-size:12.5px; font-weight:600; cursor:pointer; transition:border-color .15s ease, background .15s ease;}
   .cat-check{width:16px; height:16px; border:1.5px solid var(--border); border-radius:4px; flex-shrink:0; position:relative;}
@@ -84,6 +84,7 @@
   .cat-item.selected .cat-check::after{content:""; position:absolute; left:4px; top:1px; width:4px; height:8px; border:solid var(--on-accent); border-width:0 2px 2px 0; transform:rotate(45deg);}
   .cat-label{flex:1; min-width:0;}
   .cat-item .price{font-weight:800; color:var(--accent); flex-shrink:0; font-variant-numeric:tabular-nums;}
+  .cat-count{flex-shrink:0; background:var(--accent); color:var(--on-accent); font-size:10px; font-weight:800; padding:2px 6px; border-radius:10px;}
   .cat-item.selected{border-color:var(--accent); background:var(--accent-light);}
   .cat-item.selected .price{color:var(--accent-3);}
   .cat-item.disabled{opacity:.45;}
@@ -100,6 +101,18 @@
   .seg{display:flex; border:1.5px solid var(--border); border-radius:11px; overflow:hidden; flex-shrink:0;}
   .seg-btn{padding:0 15px; background:var(--bg); color:var(--muted); font-size:13px; font-weight:700; border:none; cursor:pointer; font-family:var(--font-body);}
   .seg-btn.active{background:var(--accent); color:var(--on-accent);}
+
+  .cart-detailed{display:flex; flex-direction:column; gap:10px; margin-top:10px;}
+  .cart-item{border:1.5px solid var(--border); border-radius:12px; padding:11px 12px; background:var(--bg);}
+  .cart-item-head{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .cart-item-label{flex:1; min-width:0; font-size:12.5px; font-weight:700;}
+  .cart-item-price{font-weight:800; color:var(--accent); font-size:12.5px; flex-shrink:0; font-variant-numeric:tabular-nums;}
+  .cart-item-head .x{cursor:pointer; width:18px; height:18px; border-radius:50%; background:var(--card-2); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--muted); flex-shrink:0;}
+  .cart-item .mini-label{display:block; font-size:10px; font-weight:700; color:var(--muted); margin:8px 0 4px; text-transform:uppercase; letter-spacing:.3px;}
+  .cart-item .mini-label:first-of-type{margin-top:0;}
+  .cart-item select, .cart-item .row2{margin-bottom:0;}
+  .reduc-row.mini{margin-top:8px;}
+  .cart-total{text-align:right; font-size:12.5px; font-weight:800; color:var(--accent-3); margin-top:2px;}
 
   button{font-family:var(--font-body);}
   button.primary{width:100%; padding:14px; margin-top:18px; background:linear-gradient(155deg, var(--accent-3), var(--accent)); color:var(--on-accent); border:none; border-radius:12px; font-size:15.5px; font-weight:700; letter-spacing:.2px; box-shadow:0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); transition:transform .12s ease, box-shadow .12s ease;}
@@ -331,7 +344,7 @@
       {label:"Pose de Vernis Semi-Permanent", price:150},
       {label:"Manucure Classique", price:130},
       {label:"Pack Beauté Manucure", price:250},
-      {label:"+ Vernis Semi-Permanent (supplément)", price:100}
+      {label:"Vernis Semi-Permanent (supplément)", price:100}
     ],
     "Pédicure": [
       {label:"Dépose", price:50},
@@ -339,7 +352,7 @@
       {label:"Pose de Vernis Semi-Permanent", price:150},
       {label:"Pédicure Classique", price:150},
       {label:"Pack Beauté Pédicure", price:300},
-      {label:"+ Vernis Semi-Permanent (supplément)", price:100}
+      {label:"Vernis Semi-Permanent (supplément)", price:100}
     ],
     "Épilation": [
       {label:"Duvet", price:40},
@@ -354,7 +367,7 @@
   };
   // Le supplément Vernis Semi-Permanent ne peut s'ajouter qu'à l'une de ces prestations
   // de base précises (pas à une Dépose ou une Pose de vernis seule, par exemple).
-  const SUPP_LABEL = "+ Vernis Semi-Permanent (supplément)";
+  const SUPP_LABEL = "Vernis Semi-Permanent (supplément)";
   const SUPP_REQUIRES = {
     "Manucure": ["Manucure Classique", "Pack Beauté Manucure"],
     "Pédicure": ["Pédicure Classique", "Pack Beauté Pédicure"]
@@ -548,15 +561,20 @@
     const cart = which==='f' ? fCart : eCart;
     const bases = SUPP_REQUIRES[cat];
     const suppReady = bases ? cartHasQualifyingBase(which, cat) : true;
+    const hint = which==='f'
+      ? `Tarifs ${escapeHtml(cat)} — touche un tarif pour l'ajouter au panier (touche plusieurs fois si plusieurs personnes prennent la même prestation)`
+      : `Tarifs ${escapeHtml(cat)} — touche un ou plusieurs tarifs`;
     container.innerHTML = `
-      <div class="cat-hint">Tarifs ${escapeHtml(cat)} — touche un ou plusieurs tarifs</div>
+      <div class="cat-hint">${hint}</div>
       <div class="cat-list">
         ${items.map((it,idx)=>{
-          const isSel = cart.some(c=>c.cat===cat && c.idx===idx);
-          const isLockedSupp = it.label===SUPP_LABEL && bases && !isSel && !suppReady;
-          return `<div class="cat-item ${isSel?'selected':''} ${isLockedSupp?'disabled':''}" onclick="toggleCatalogueItem('${which}',${idx})">
+          const count = cart.filter(c=>c.cat===cat && c.idx===idx).length;
+          const isLockedSupp = it.label===SUPP_LABEL && bases && count===0 && !suppReady;
+          return `<div class="cat-item ${count>0?'selected':''} ${isLockedSupp?'disabled':''}" onclick="toggleCatalogueItem('${which}',${idx})">
             <span class="cat-check"></span>
-            <span class="cat-label">${escapeHtml(it.label)}</span><span class="price">${it.price} MAD</span>
+            <span class="cat-label">${escapeHtml(it.label)}</span>
+            ${count>1?`<span class="cat-count">×${count}</span>`:''}
+            <span class="price">${it.price} MAD</span>
           </div>`;
         }).join("")}
       </div>
@@ -570,14 +588,88 @@
     return cart.some(c=>c.cat===cat && bases.includes(c.label));
   }
 
+  function itemFinalPrice(item){
+    const val = item.reducValue || 0;
+    let final = item.reducType==='%' ? item.price - (item.price*val/100) : item.price - val;
+    if(final < 0) final = 0;
+    return Math.round(final*100)/100;
+  }
+
   function renderCart(which){
     const el = document.getElementById(which+'Cart');
     if(!el) return;
     const cart = which==='f' ? fCart : eCart;
     if(!cart.length){ el.innerHTML = ""; return; }
-    el.innerHTML = `<div class="cart">${cart.map((c,i)=>
-      `<div class="cart-chip">${escapeHtml(c.label)} · ${c.price} MAD<span class="x" onclick="removeCartItem('${which}',${i})">×</span></div>`
-    ).join("")}</div>`;
+
+    if(which==='e'){
+      // Fenêtre de modification : un seul rendez-vous (une employée, un horaire) —
+      // le panier y reste une simple liste, comme avant.
+      el.innerHTML = `<div class="cart">${cart.map((c,i)=>
+        `<div class="cart-chip">${escapeHtml(c.label)} · ${c.price} MAD<span class="x" onclick="removeCartItem('${which}',${i})">×</span></div>`
+      ).join("")}</div>`;
+      return;
+    }
+
+    // Nouveau rendez-vous : dès qu'une prestation est cochée, on choisit directement
+    // pour elle l'employée qui s'en occupe et son horaire (utile quand une cliente
+    // voit plusieurs employées différentes l'une après l'autre dans le même RDV).
+    const empOptions = (sel) => EMPLOYEES.map(v=>`<option value="${escapeHtml(v)}" ${v===sel?"selected":""}>${escapeHtml(v)}</option>`).join("");
+    let total = 0;
+    const rows = cart.map((item,i)=>{
+      const finalPrice = itemFinalPrice(item);
+      total += finalPrice;
+      return `
+        <div class="cart-item">
+          <div class="cart-item-head">
+            <span class="cart-item-label">${escapeHtml(item.label)}</span>
+            <span class="cart-item-price" id="fCartPrice${i}">${finalPrice} MAD</span>
+            <span class="x" onclick="removeCartItem('f',${i})">×</span>
+          </div>
+          <label class="mini-label">Employée</label>
+          <select onchange="updateCartItem(${i},'employee',this.value)">
+            <option value="">Choisir…</option>
+            ${empOptions(item.employee)}
+          </select>
+          <label class="mini-label">Horaire</label>
+          <div class="row2">
+            <div class="field-clip"><input type="time" value="${escapeHtml(item.heureDebut||"")}" onchange="updateCartItem(${i},'heureDebut',this.value)"></div>
+            <div class="field-clip"><input type="time" value="${escapeHtml(item.heureFin||"")}" onchange="updateCartItem(${i},'heureFin',this.value)"></div>
+          </div>
+          <label class="mini-label">Réduction <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
+          <div class="reduc-row mini">
+            <div class="seg" data-type="${item.reducType}">
+              <button type="button" class="seg-btn ${item.reducType==='MAD'?'active':''}" onclick="setCartReducType(${i},'MAD')">MAD</button>
+              <button type="button" class="seg-btn ${item.reducType==='%'?'active':''}" onclick="setCartReducType(${i},'%')">%</button>
+            </div>
+            <input type="number" inputmode="decimal" placeholder="0" value="${item.reducValue||""}" oninput="updateCartItem(${i},'reducValue',this.value)">
+          </div>
+        </div>
+      `;
+    }).join("");
+    el.innerHTML = `<div class="cart-detailed">${rows}</div><div class="cart-total">Total : ${Math.round(total*100)/100} MAD</div>`;
+  }
+
+  function updateCartItem(i, field, value){
+    const item = fCart[i];
+    if(!item) return;
+    if(field === 'reducValue') item.reducValue = parseFloat(value) || 0;
+    else item[field] = value;
+    if(field === 'reducValue'){
+      const priceEl = document.getElementById('fCartPrice'+i);
+      if(priceEl) priceEl.textContent = itemFinalPrice(item) + ' MAD';
+      const totalEl = document.querySelector('#fCart .cart-total');
+      if(totalEl){
+        const total = fCart.reduce((s,c)=>s+itemFinalPrice(c), 0);
+        totalEl.textContent = `Total : ${Math.round(total*100)/100} MAD`;
+      }
+    }
+  }
+
+  function setCartReducType(i, type){
+    const item = fCart[i];
+    if(!item) return;
+    item.reducType = type;
+    renderCart('f');
   }
 
   // La catégorie ne sert qu'à parcourir le catalogue à afficher — elle ne remet
@@ -593,22 +685,30 @@
     const item = (CATALOGUE[cat]||[])[idx];
     if(!item) return;
     const cart = which==='f' ? fCart : eCart;
-    const pos = cart.findIndex(c=>c.cat===cat && c.idx===idx);
     const bases = SUPP_REQUIRES[cat];
 
-    if(pos===-1 && item.label===SUPP_LABEL && bases && !cartHasQualifyingBase(which, cat)){
+    if(item.label===SUPP_LABEL && bases && !cartHasQualifyingBase(which, cat)){
       alert(`Le supplément vernis semi-permanent ne peut s'ajouter qu'avec : ${bases.join(" ou ")}.`);
       return;
     }
 
-    if(pos===-1) cart.push({cat, idx, label:item.label, price:item.price});
-    else cart.splice(pos,1);
-
-    // Si on vient de retirer une prestation de base, le supplément vernis associé
-    // (déjà dans le panier) n'a plus lieu d'être : on l'enlève aussi.
-    if(pos!==-1 && bases && bases.includes(item.label) && !cartHasQualifyingBase(which, cat)){
-      for(let i=cart.length-1; i>=0; i--){
-        if(cart[i].cat===cat && cart[i].label===SUPP_LABEL) cart.splice(i,1);
+    if(which === 'f'){
+      // Nouveau RDV : chaque touche ajoute une prestation supplémentaire au panier
+      // (utile quand plusieurs personnes prennent la même prestation ce jour-là) —
+      // pour en retirer une, on utilise la croix sur sa fiche dans le panier.
+      cart.push({cat, idx, label:item.label, price:item.price, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0});
+    } else {
+      // Fenêtre de modification : un seul rendez-vous, donc on garde la sélection
+      // simple (toucher à nouveau retire la prestation).
+      const pos = cart.findIndex(c=>c.cat===cat && c.idx===idx);
+      if(pos===-1) cart.push({cat, idx, label:item.label, price:item.price});
+      else cart.splice(pos,1);
+      // Si on vient de retirer une prestation de base, le supplément vernis associé
+      // n'a plus lieu d'être : on l'enlève aussi.
+      if(pos!==-1 && bases && bases.includes(item.label) && !cartHasQualifyingBase(which, cat)){
+        for(let i=cart.length-1; i>=0; i--){
+          if(cart[i].cat===cat && cart[i].label===SUPP_LABEL) cart.splice(i,1);
+        }
       }
     }
 
@@ -629,7 +729,7 @@
       return;
     }
     const cart = which==='f' ? fCart : eCart;
-    cart.push({cat:null, idx:null, label, price});
+    cart.push({cat:null, idx:null, label, price, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0});
     labelEl.value = "";
     priceEl.value = "";
     recomputeFromCart(which);
@@ -638,21 +738,38 @@
 
   function removeCartItem(which, cartIndex){
     const cart = which==='f' ? fCart : eCart;
+    const removed = cart[cartIndex];
     cart.splice(cartIndex, 1);
+    // Si on vient de retirer une prestation qui donnait droit au supplément vernis
+    // et qu'il n'en reste plus aucune de ce type, le supplément n'a plus lieu
+    // d'être : on l'enlève aussi.
+    if(removed){
+      const bases = SUPP_REQUIRES[removed.cat];
+      if(bases && bases.includes(removed.label) && !cartHasQualifyingBase(which, removed.cat)){
+        for(let i=cart.length-1; i>=0; i--){
+          if(cart[i].cat===removed.cat && cart[i].label===SUPP_LABEL) cart.splice(i,1);
+        }
+      }
+    }
     recomputeFromCart(which);
     renderCatalogueList(which, document.getElementById(which+'Prestation').value);
     renderCart(which);
   }
 
+  // Dans le nouveau formulaire de RDV ("f"), chaque prestation du panier gère son
+  // propre prix/employée/horaire (voir renderCart) — rien à recalculer ici, le
+  // rendu se charge de tout. Dans la fenêtre de modification ("e"), un seul
+  // rendez-vous est concerné : la logique globale base+réduction reste utilisée.
   function recomputeFromCart(which){
-    const cart = which==='f' ? fCart : eCart;
-    document.getElementById(which+'PrestationDetail').value = cart.map(c=>c.label).join(" + ");
+    if(which === 'f') return;
+    const cart = eCart;
+    document.getElementById('ePrestationDetail').value = cart.map(c=>c.label).join(" + ");
     if(cart.length){
       const sum = cart.reduce((s,c)=>s+c.price, 0);
-      if(which==='f') fBasePrice = sum; else eBasePrice = sum;
-      applyReduction(which);
+      eBasePrice = sum;
+      applyReduction('e');
     } else {
-      if(which==='f') fBasePrice = null; else eBasePrice = null;
+      eBasePrice = null;
     }
   }
 
@@ -707,29 +824,6 @@
         <select id="fPrestation" onchange="onCategoryChange('f')"><option value="">Choisir…</option>${opts(PRESTATIONS)}</select>
         <div class="cat-list-wrap" id="fCatList"></div>
         <div id="fCart"></div>
-        <label>Détail de la prestation</label>
-        <input type="text" id="fPrestationDetail" placeholder="Ex : Manucure gel + nail art">
-        <label>Réduction <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
-        <div class="reduc-row">
-          <div class="seg" id="fReducSeg" data-type="MAD">
-            <button type="button" class="seg-btn active" data-type="MAD" onclick="setReducType('f','MAD')">MAD</button>
-            <button type="button" class="seg-btn" data-type="%" onclick="setReducType('f','%')">%</button>
-          </div>
-          <input type="number" id="fReducValue" inputmode="decimal" placeholder="0" oninput="applyReduction('f')">
-        </div>
-        <label>Montant (MAD)</label>
-        <input type="number" id="fMontant" inputmode="decimal" placeholder="0" oninput="onMontantInput('f')">
-        <label>Employée</label>
-        <select id="fEmployee"><option value="">Choisir…</option>${opts(EMPLOYEES)}</select>
-        <label>Heure de début et de fin <span style="text-transform:none; font-weight:600; opacity:.7;">(approximatif)</span></label>
-        <div class="row2">
-          <div>
-            <input type="time" id="fHeureDebut" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
-          </div>
-          <div>
-            <input type="time" id="fHeureFin" min="${String(START_H).padStart(2,"0")}:00" max="${String(END_H).padStart(2,"0")}:00">
-          </div>
-        </div>
         <label>Cliente <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
         <input type="text" id="fCliente" placeholder="Client de passage">
         <button class="primary" id="btnSave" onclick="saveRdv()">Enregistrer</button>
@@ -740,31 +834,17 @@
 
   async function saveRdv(){
     const date = document.getElementById('fDate').value;
-    const heure = document.getElementById('fHeureDebut').value;
-    const heureFin = document.getElementById('fHeureFin').value;
     const cliente = document.getElementById('fCliente').value.trim();
     const prestationSelect = document.getElementById('fPrestation').value;
-    const prestationDetail = document.getElementById('fPrestationDetail').value.trim();
-    const employee = document.getElementById('fEmployee').value;
-    const montant = parseFloat(document.getElementById('fMontant').value);
     const msg = document.getElementById('formMsg');
-    // Si plusieurs prestations de catégories différentes ont été ajoutées au panier,
-    // la catégorie enregistrée combine les catégories concernées (ex: "Manucure + Pédicure").
-    const cartCats = [...new Set(fCart.map(c=>c.cat).filter(Boolean))];
-    const prestation = cartCats.length ? (cartCats.length===1 ? cartCats[0] : cartCats.join(" + ")) : prestationSelect;
 
-    if(!date || !heure || !heureFin || !prestationSelect || !employee || isNaN(montant)){
-      msg.textContent = "Remplis au moins : date, heure début, heure fin, catégorie, employée, montant.";
+    if(!date){
+      msg.textContent = "Choisis une date.";
       msg.className = "msg err";
       return;
     }
-    if(heureFin <= heure){
-      msg.textContent = "L'heure de fin doit être après l'heure de début.";
-      msg.className = "msg err";
-      return;
-    }
-    if(!isWithinOpeningHours(heure, heureFin)){
-      msg.textContent = `L'horaire doit être entre ${String(START_H).padStart(2,"0")}:00 et ${String(END_H).padStart(2,"0")}:00 (heures d'ouverture).`;
+    if(fCart.length === 0){
+      msg.textContent = "Ajoute au moins une prestation (touche un tarif du catalogue, ou utilise \"Sur mesure\").";
       msg.className = "msg err";
       return;
     }
@@ -773,27 +853,62 @@
       msg.className = "msg err";
       return;
     }
+
+    // Chaque prestation a sa propre employée et son propre horaire. Les prestations
+    // qui partagent la même employée + le même horaire sont regroupées dans un seul
+    // rendez-vous ; les autres deviennent des rendez-vous séparés (ex : deux
+    // employées différentes vues l'une après l'autre par la même cliente).
+    const groups = new Map();
+    for(const item of fCart){
+      const emp = item.employee;
+      const hd = item.heureDebut;
+      const hf = item.heureFin;
+      if(!emp || !hd || !hf){
+        msg.textContent = `Choisis une employée et un horaire pour "${item.label}".`;
+        msg.className = "msg err";
+        return;
+      }
+      if(hf <= hd){
+        msg.textContent = `L'heure de fin doit être après l'heure de début pour "${item.label}".`;
+        msg.className = "msg err";
+        return;
+      }
+      if(!isWithinOpeningHours(hd, hf)){
+        msg.textContent = `L'horaire de "${item.label}" doit être entre ${String(START_H).padStart(2,"0")}:00 et ${String(END_H).padStart(2,"0")}:00.`;
+        msg.className = "msg err";
+        return;
+      }
+      const key = emp+"|"+hd+"|"+hf;
+      if(!groups.has(key)) groups.set(key, {employee:emp, heure:hd, heureFin:hf, items:[]});
+      groups.get(key).items.push(item);
+    }
+
+    const docsToSave = [];
+    for(const g of groups.values()){
+      const cats = [...new Set(g.items.map(it=>it.cat).filter(Boolean))];
+      const prestation = cats.length ? (cats.length===1 ? cats[0] : cats.join(" + ")) : (prestationSelect || CUSTOM_CAT);
+      const prestationDetail = g.items.map(it=>it.label).join(" + ");
+      const montant = Math.round(g.items.reduce((s,it)=>s+itemFinalPrice(it), 0) * 100) / 100;
+      docsToSave.push({
+        date, heure:g.heure, heureFin:g.heureFin, cliente: cliente || "Client de passage",
+        prestation, prestationDetail, employee:g.employee, montant,
+        createdAt: new Date().toISOString()
+      });
+    }
+
     const btn = document.getElementById('btnSave');
     btn.disabled = true;
     try{
-      await db.collection("rendezvous").add({
-        date, heure, heureFin, cliente: cliente || "Client de passage",
-        prestation, prestationDetail: prestationDetail || prestation,
-        employee, montant,
-        createdAt: new Date().toISOString()
-      });
-      msg.textContent = "Rendez-vous enregistré ✓";
+      for(const d of docsToSave){
+        await db.collection("rendezvous").add(d);
+      }
+      msg.textContent = docsToSave.length > 1
+        ? `${docsToSave.length} rendez-vous enregistrés ✓ (répartis par employée/horaire)`
+        : "Rendez-vous enregistré ✓";
       msg.className = "msg ok";
-      document.getElementById('fHeureDebut').value = "";
-      document.getElementById('fHeureFin').value = "";
       document.getElementById('fCliente').value = "";
       document.getElementById('fPrestation').value = "";
-      document.getElementById('fPrestationDetail').value = "";
-      document.getElementById('fEmployee').value = "";
-      document.getElementById('fMontant').value = "";
-      fBasePrice = null;
       fCart = [];
-      resetReduc('f');
       renderCatalogueList('f', '');
       renderCart('f');
     }catch(e){
