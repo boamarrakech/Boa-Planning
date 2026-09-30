@@ -242,11 +242,16 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V13M12 20V6M20 20v-9"/></svg>
       CA
     </div>
+    <div class="tab" id="tabPointage" onclick="showTab('pointage')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      Pointage
+    </div>
   </div>
 
   <div id="viewNew"></div>
   <div id="viewPlanning" style="display:none"></div>
   <div id="viewCa" style="display:none"></div>
+  <div id="viewPointage" style="display:none"></div>
 
   <div id="modalRoot" style="display:none"></div>
 
@@ -405,9 +410,12 @@
   let currentUserName = "";
   let allDocs = [];
   let auditDocs = [];
+  let pointageDocs = [];
   let unsub = null;
   let unsubAudit = null;
+  let unsubPointage = null;
   let planningDate = todayStr();
+  let pointageDate = todayStr();
 
   function todayStr(){
     const d = new Date();
@@ -535,12 +543,15 @@
     document.getElementById('viewNew').style.display = which==='new' ? '' : 'none';
     document.getElementById('viewPlanning').style.display = which==='planning' ? '' : 'none';
     document.getElementById('viewCa').style.display = which==='ca' ? '' : 'none';
+    document.getElementById('viewPointage').style.display = which==='pointage' ? '' : 'none';
     document.getElementById('tabNew').classList.toggle('active', which==='new');
     document.getElementById('tabPlanning').classList.toggle('active', which==='planning');
     document.getElementById('tabCa').classList.toggle('active', which==='ca');
+    document.getElementById('tabPointage').classList.toggle('active', which==='pointage');
     document.querySelector('.wrap').classList.toggle('wide', which==='planning');
     if(which==='planning') renderPlanning();
     if(which==='ca') renderCa();
+    if(which==='pointage') renderPointage();
   }
 
   function renderCatalogueList(which, cat){
@@ -1172,6 +1183,182 @@
     if(v){ planningDate = v; renderPlanning(); }
   }
 
+  // ---- Pointage des employées (heure d'arrivée / heure de départ) ----
+  // Un document par employée et par jour, identifié par "date__employée" pour
+  // que ressaisir une heure mette simplement à jour la même fiche (pas de doublon).
+  function pointageDocId(date, employee){
+    return date + "__" + employee;
+  }
+  function findPointage(date, employee){
+    return pointageDocs.find(p=>p.date===date && p.employee===employee) || null;
+  }
+  // Calcule la durée travaillée entre deux heures "HH:MM" (ex: "7h30"). Renvoie
+  // null si l'une des deux heures manque encore.
+  function pointageDuration(a, b){
+    if(!a || !b) return null;
+    const [ah,am] = a.split(":").map(Number);
+    const [bh,bm] = b.split(":").map(Number);
+    let mins = (bh*60+bm) - (ah*60+am);
+    if(mins < 0) mins += 24*60;
+    const h = Math.floor(mins/60), m = mins%60;
+    return {mins, label: `${h}h${String(m).padStart(2,"0")}`};
+  }
+
+  async function savePointage(employee, field, value){
+    if(!db) return;
+    const id = pointageDocId(pointageDate, employee);
+    try{
+      await db.collection("pointages").doc(id).set({
+        date: pointageDate, employee, [field]: value,
+        updatedAt: new Date().toISOString(), modifiePar: currentUserName
+      }, {merge:true});
+    }catch(e){
+      alert("Erreur d'enregistrement du pointage : " + (e && e.message ? e.message : "réessaie."));
+    }
+  }
+
+  function shiftPointage(n){
+    pointageDate = addDays(pointageDate, n);
+    renderPointage();
+  }
+  function jumpPointageToday(){
+    pointageDate = todayStr();
+    renderPointage();
+  }
+  function onPointageDateInput(v){
+    if(v){ pointageDate = v; renderPointage(); }
+  }
+
+  function renderPointage(){
+    const isToday = pointageDate === todayStr();
+
+    const rows = EMPLOYEES.map(emp=>{
+      const p = findPointage(pointageDate, emp);
+      const arr = (p && p.heureArrivee) || "";
+      const dep = (p && p.heureDepart) || "";
+      const dur = pointageDuration(arr, dep);
+      let statusHtml;
+      if(dur) statusHtml = `<span class="cart-item-price">${dur.label}</span>`;
+      else if(arr) statusHtml = `<span class="cart-item-price" style="color:var(--today-text)">En cours</span>`;
+      else statusHtml = `<span class="cart-item-price" style="color:var(--muted); font-weight:700;">Non pointée</span>`;
+      return `
+        <div class="cart-item">
+          <div class="cart-item-head">
+            <span class="cart-item-label">${escapeHtml(emp)}</span>
+            ${statusHtml}
+          </div>
+          <div class="row2">
+            <div>
+              <label class="mini-label">Arrivée</label>
+              <div class="field-clip"><input type="time" value="${escapeHtml(arr)}" onchange="savePointage('${escapeHtml(emp)}','heureArrivee',this.value)"></div>
+            </div>
+            <div>
+              <label class="mini-label">Départ</label>
+              <div class="field-clip"><input type="time" value="${escapeHtml(dep)}" onchange="savePointage('${escapeHtml(emp)}','heureDepart',this.value)"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Récapitulatif sur une période : toutes les fiches de pointage, plus le
+    // total d'heures travaillées par employée sur cette période.
+    const allDatesSorted = pointageDocs.map(p=>p.date).filter(Boolean).sort();
+    const minDate = allDatesSorted[0] || todayStr();
+    const maxDate = allDatesSorted[allDatesSorted.length-1] || todayStr();
+
+    document.getElementById('viewPointage').innerHTML = `
+      <div class="card">
+        <div class="card-title"><span class="dot"></span>Pointage</div>
+        <div class="nav">
+          <button onclick="shiftPointage(-1)">‹</button>
+          <div class="datepick">
+            <div class="day-label">${fmtLong(pointageDate)}</div>
+            <input type="date" value="${pointageDate}" onchange="onPointageDateInput(this.value)">
+          </div>
+          <button onclick="shiftPointage(1)">›</button>
+        </div>
+        ${isToday ? '' : '<button class="today-btn" onclick="jumpPointageToday()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Revenir à aujourd’hui</button>'}
+        <div class="cart-detailed">${rows}</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent-3)"></span>Récapitulatif sur une période</div>
+        <div class="row2">
+          <div><label>Du</label><input type="date" id="ptPeriodFrom" value="${minDate}" onchange="renderPointageRecap()"></div>
+          <div><label>Au</label><input type="date" id="ptPeriodTo" value="${maxDate}" onchange="renderPointageRecap()"></div>
+        </div>
+        <div id="ptTotals" style="margin-top:14px;"></div>
+        <div id="ptHistory" style="margin-top:14px;"></div>
+      </div>
+    `;
+    renderPointageRecap();
+  }
+
+  function renderPointageRecap(){
+    const fromEl = document.getElementById('ptPeriodFrom');
+    const toEl = document.getElementById('ptPeriodTo');
+    const totalsEl = document.getElementById('ptTotals');
+    const histEl = document.getElementById('ptHistory');
+    if(!fromEl || !toEl || !totalsEl || !histEl) return;
+    const from = fromEl.value, to = toEl.value;
+    if(!from || !to || to < from){
+      totalsEl.innerHTML = '<div class="empty">Choisis une période valide (Au ≥ Du).</div>';
+      histEl.innerHTML = "";
+      return;
+    }
+    const rows = pointageDocs
+      .filter(p=>p.date && p.date>=from && p.date<=to)
+      .sort((a,b)=>{
+        if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+        return (a.employee||"").localeCompare(b.employee||"");
+      });
+
+    const totalsByEmp = {};
+    EMPLOYEES.forEach(e=>totalsByEmp[e] = 0);
+    rows.forEach(p=>{
+      const dur = pointageDuration(p.heureArrivee, p.heureDepart);
+      if(dur && totalsByEmp[p.employee] !== undefined) totalsByEmp[p.employee] += dur.mins;
+    });
+    const totalsRows = EMPLOYEES.map(e=>{
+      const mins = totalsByEmp[e];
+      const label = mins>0 ? `${Math.floor(mins/60)}h${String(mins%60).padStart(2,"0")}` : "—";
+      return `<tr><td>${escapeHtml(e)}</td><td class="num">${label}</td></tr>`;
+    }).join("");
+    totalsEl.innerHTML = `
+      <div class="card-title" style="font-size:12px;"><span class="dot" style="background:var(--accent-2)"></span>Total d'heures par employée</div>
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Employée</th><th style="text-align:right">Heures</th></tr></thead>
+        <tbody>${totalsRows}</tbody>
+      </table>
+      </div>
+    `;
+
+    if(rows.length===0){
+      histEl.innerHTML = '<div class="empty">Aucun pointage sur cette période</div>';
+      return;
+    }
+    const histRows = rows.map(p=>{
+      const dur = pointageDuration(p.heureArrivee, p.heureDepart);
+      return `<tr>
+        <td>${escapeHtml(fmtLong(p.date))}</td>
+        <td>${escapeHtml(p.employee||"—")}</td>
+        <td>${escapeHtml(p.heureArrivee||"—")}</td>
+        <td>${escapeHtml(p.heureDepart||"—")}</td>
+        <td class="num">${dur ? dur.label : "—"}</td>
+      </tr>`;
+    }).join("");
+    histEl.innerHTML = `
+      <div class="card-title" style="font-size:12px;"><span class="dot" style="background:var(--accent-3)"></span>Détail des pointages</div>
+      <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Date</th><th>Employée</th><th>Arrivée</th><th>Départ</th><th style="text-align:right">Durée</th></tr></thead>
+        <tbody>${histRows}</tbody>
+      </table>
+      </div>
+    `;
+  }
+
   function renderPlanning(){
     const dayItems = allDocs.filter(d=>d.date===planningDate);
     const isToday = planningDate === todayStr();
@@ -1373,7 +1560,10 @@
         </div>`}
       </div>
       <div class="card">
-        <div class="card-title"><span class="dot" style="background:var(--danger)"></span>Journal des modifications</div>
+        <div class="card-title" style="justify-content:space-between;">
+          <span style="display:flex; align-items:center; gap:7px;"><span class="dot" style="background:var(--danger)"></span>Journal des modifications</span>
+          ${auditDocs.length ? `<span onclick="clearAuditLog()" style="cursor:pointer; font-size:11px; font-weight:700; color:var(--danger); text-transform:none; letter-spacing:0;">Vider tout</span>` : ''}
+        </div>
         ${renderAuditLog()}
       </div>
     `;
@@ -1413,7 +1603,10 @@
       return `<div style="padding:11px 0; border-bottom:1px solid var(--border);">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:5px;">
           <span style="font-weight:800; font-size:11.5px; color:${actionColor};">${actionLabel}</span>
-          <span style="font-size:10.5px; color:var(--muted);">${escapeHtml(when)}</span>
+          <span style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:10.5px; color:var(--muted);">${escapeHtml(when)}</span>
+            <span onclick="deleteAuditEntry('${a.id}')" style="cursor:pointer; width:18px; height:18px; border-radius:50%; background:var(--card-2); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--muted); flex-shrink:0;">×</span>
+          </span>
         </div>
         <div style="font-size:12.5px; margin-bottom:3px;">Rdv du ${escapeHtml(fmtLong(b.date||""))} à ${escapeHtml(b.heure||"—")} · ${escapeHtml(b.employee||"—")} · ${fmtMoney(b.montant||0)}${isPast ? ' <span style="color:var(--danger); font-weight:800;">· RDV déjà passé</span>' : ''}</div>
         <div style="font-size:11.5px; color:var(--muted);">Par : ${escapeHtml(a.modifiePar||"—")}</div>
@@ -1421,6 +1614,34 @@
       </div>`;
     }).join("");
     return `<div>${rowsHtml}</div>`;
+  }
+
+  async function deleteAuditEntry(id){
+    if(!db || !id) return;
+    if(!confirm("Supprimer cette entrée du journal ? C'est définitif.")) return;
+    try{
+      await db.collection("audit_log").doc(id).delete();
+    }catch(e){
+      alert("Erreur lors de la suppression : " + (e && e.message ? e.message : "réessaie."));
+    }
+  }
+
+  // Vide tout le journal, y compris les entrées plus anciennes que les 200 dernières
+  // affichées à l'écran (sinon le journal continuerait à grossir sans fin en arrière-plan).
+  async function clearAuditLog(){
+    if(!db) return;
+    if(!confirm("Vider tout le journal des modifications ? C'est définitif et ne peut pas être annulé.")) return;
+    try{
+      const snap = await db.collection("audit_log").get();
+      const docs = snap.docs;
+      for(let i=0; i<docs.length; i+=450){
+        const batch = db.batch();
+        docs.slice(i, i+450).forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+      }
+    }catch(e){
+      alert("Erreur lors du vidage du journal : " + (e && e.message ? e.message : "réessaie."));
+    }
   }
 
   function authErrorMsg(e){
@@ -1456,6 +1677,7 @@
   function doLogout(){
     if(unsub){ unsub(); unsub = null; }
     if(unsubAudit){ unsubAudit(); unsubAudit = null; }
+    if(unsubPointage){ unsubPointage(); unsubPointage = null; }
     auth.signOut();
   }
 
@@ -1474,6 +1696,7 @@
       currentUserName = "";
       if(unsub){ unsub(); unsub = null; }
       if(unsubAudit){ unsubAudit(); unsubAudit = null; }
+      if(unsubPointage){ unsubPointage(); unsubPointage = null; }
       document.getElementById('appWrap').style.display = 'none';
       document.getElementById('loginWrap').style.display = '';
     }
@@ -1507,6 +1730,14 @@
       (snap)=>{
         auditDocs = snap.docs.map(d=>({id:d.id, ...d.data()}));
         if(document.getElementById('viewCa').style.display !== 'none') renderCa();
+      },
+      (err)=>{}
+    );
+
+    unsubPointage = db.collection("pointages").orderBy("date","desc").limit(2000).onSnapshot(
+      (snap)=>{
+        pointageDocs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+        if(document.getElementById('viewPointage').style.display !== 'none') renderPointage();
       },
       (err)=>{}
     );
