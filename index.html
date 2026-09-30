@@ -172,6 +172,7 @@
   .overlap-badge{position:absolute; z-index:5; left:2px; right:2px; background:var(--accent); color:var(--on-accent); font-size:9px; font-weight:800; padding:2px 1px; border-radius:8px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.4);}
   .appt{position:absolute; border-radius:7px; padding:4px 6px; font-size:10px; color:#fff; overflow:hidden; line-height:1.32; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.18);}
   .appt b{display:block; font-size:10.5px; margin-bottom:1px;}
+  .appt-group-badge{display:inline-block; background:rgba(255,255,255,.92); color:#171009; font-size:8.5px; font-weight:800; padding:0 4px; border-radius:6px; margin-left:4px; vertical-align:middle;}
   .appt .cli{opacity:.92; display:flex; justify-content:space-between; align-items:baseline; gap:4px;}
   .appt .cli > span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
   .appt .price{font-weight:800; white-space:nowrap; flex-shrink:0;}
@@ -954,6 +955,11 @@
       groups.get(key).items.push(item);
     }
 
+    // Un identifiant commun à tous les rendez-vous issus de cette même saisie — même
+    // quand ils sont répartis en plusieurs créneaux (employées/horaires différents) —
+    // pour pouvoir plus tard retrouver d'un coup tout ce qu'une cliente est venue faire.
+    const visitId = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
     const docsToSave = [];
     for(const g of groups.values()){
       const cats = [...new Set(g.items.map(it=>it.cat).filter(Boolean))];
@@ -962,7 +968,7 @@
       const montant = Math.round(g.items.reduce((s,it)=>s+itemFinalPrice(it), 0) * 100) / 100;
       docsToSave.push({
         date, heure:g.heure, heureFin:g.heureFin, cliente: cliente || "Client de passage",
-        prestation, prestationDetail, employee:g.employee, montant,
+        prestation, prestationDetail, employee:g.employee, montant, visitId,
         createdAt: new Date().toISOString()
       });
     }
@@ -1005,10 +1011,35 @@
     const prestationOpts = PRESTATIONS.includes(d.prestation)
       ? opts(PRESTATIONS, d.prestation)
       : `<option value="${escapeHtml(d.prestation||"")}" selected>${escapeHtml(d.prestation||"—")}</option>` + opts(PRESTATIONS, "");
+
+    // Autres créneaux issus de la même saisie (même visitId) : même cliente venue faire
+    // plusieurs prestations avec des employées/horaires différents. On les retrouve tous
+    // d'un coup ici, sans avoir à ouvrir chaque créneau un par un.
+    const siblings = d.visitId ? allDocs.filter(x=>x.visitId===d.visitId && x.id!==d.id) : [];
+    let groupHtml = "";
+    if(siblings.length){
+      const all = [d, ...siblings].sort((a,b)=>(a.heure||"").localeCompare(b.heure||""));
+      const total = Math.round(all.reduce((s,x)=>s+(x.montant||0),0)*100)/100;
+      const rowsHtml = all.map(x=>`
+        <div class="cart-group-row" style="${x.id===d.id?'':'cursor:pointer;'}" ${x.id===d.id?'':`onclick="openEditRdv('${x.id}')"`}>
+          <span>${x.id===d.id?'<b>▸</b> ':''}${escapeHtml(x.heure||"—")}–${escapeHtml(x.heureFin||"—")} · ${escapeHtml(x.employee||"—")} · ${escapeHtml(x.prestationDetail||x.prestation||"—")}</span>
+          <span>${Math.round(x.montant||0)} MAD</span>
+        </div>
+      `).join("");
+      groupHtml = `
+        <div class="cart-groups" style="margin-top:0; margin-bottom:16px;">
+          <div class="cart-groups-hint">Ce rendez-vous comprend ${all.length} prestations (employées/horaires différents) — touche une ligne pour l'ouvrir :</div>
+          ${rowsHtml}
+          <div class="cart-total" style="margin-top:8px;">Total de la visite : ${total} MAD</div>
+        </div>
+      `;
+    }
+
     document.getElementById('modalRoot').innerHTML = `
       <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
         <div class="modal-card">
           <div class="modal-title">Modifier le rendez-vous</div>
+          ${groupHtml}
           <label>Date</label>
           <div class="field-clip"><input type="date" id="eDate" value="${escapeHtml(d.date||"")}"></div>
           <div class="row2">
@@ -1051,7 +1082,10 @@
       </div>
     `;
     document.getElementById('modalRoot').style.display = 'block';
-    lockBodyScroll();
+    // Si on saute d'un créneau à l'autre via la vue d'ensemble, la modale est déjà
+    // ouverte et le body déjà figé : on ne relance pas le blocage de défilement, sinon
+    // la position d'origine sauvegardée serait écrasée par 0 (body déjà en position:fixed).
+    if(document.body.style.position !== 'fixed') lockBodyScroll();
     // Reconstruit le panier à partir du libellé enregistré, en cherchant chaque
     // partie dans toutes les catégories (pas seulement la catégorie stockée), pour
     // retrouver aussi les rendez-vous combinant plusieurs catégories.
@@ -1433,8 +1467,12 @@
       const label = d.prestationDetail || d.prestation || "—";
       const widthPct = 100/laneCount;
       const leftPct = it.lane*widthPct;
+      // Rendez-vous répartis sur plusieurs créneaux (même visitId) : un petit badge
+      // signale tout de suite que d'autres prestations de la même visite existent ailleurs.
+      const siblingCount = d.visitId ? dayItems.filter(x=>x.visitId===d.visitId && x.id!==d.id).length : 0;
+      const groupBadge = siblingCount ? `<span class="appt-group-badge" title="Fait partie d'un même rendez-vous, avec ${siblingCount} autre(s) créneau(x)">+${siblingCount}</span>` : '';
       return `<div class="appt" style="top:${top}px; height:${h}px; left:calc(${leftPct}% + 2px); width:calc(${widthPct}% - 4px); background:${color}" onclick="openEditRdv('${d.id}')">
-        <b>${escapeHtml(d.heure||"—")}–${escapeHtml(end)} · ${escapeHtml(d.employee||"—")}</b>
+        <b>${escapeHtml(d.heure||"—")}–${escapeHtml(end)} · ${escapeHtml(d.employee||"—")}${groupBadge}</b>
         <div class="cli"><span>${escapeHtml(label)}</span><span class="price">${Math.round(d.montant||0)}</span></div>
       </div>`;
     }).join("");
@@ -1566,8 +1604,57 @@
         </div>
         ${renderAuditLog()}
       </div>
+      <div class="card" style="border-color:color-mix(in srgb, var(--danger) 45%, var(--border));">
+        <div class="card-title"><span class="dot" style="background:var(--danger)"></span>Zone à risque</div>
+        <div style="font-size:12px; color:var(--muted); font-weight:600; line-height:1.5; margin-bottom:12px;">
+          Efface définitivement des données de l'institut. Il n'y a pas de retour en arrière possible une fois confirmé — à utiliser seulement pour repartir sur de bonnes bases.
+        </div>
+        <button class="danger" style="margin-top:0;" onclick="resetAllRdv()">Supprimer tous les rendez-vous (${allDocs.length})</button>
+        <button class="danger" onclick="resetAllPointages()">Supprimer tous les pointages (${pointageDocs.length})</button>
+      </div>
     `;
     updatePeriodPreview();
+  }
+
+  // Supprime une collection entière, par lots de 450 (limite Firestore : 500 opérations
+  // par batch), après confirmation forte (taper un mot exact, pas juste "OK/Annuler",
+  // vu que l'action est définitive et irréversible).
+  async function deleteWholeCollection(name, confirmWord, warningText){
+    if(!db) return;
+    const typed = prompt(`${warningText}\n\nTape ${confirmWord} (en majuscules) pour confirmer.`);
+    if(typed === null) return;
+    if(typed.trim() !== confirmWord){
+      alert("Annulé : le texte tapé ne correspond pas exactement à " + confirmWord + ".");
+      return;
+    }
+    try{
+      const snap = await db.collection(name).get();
+      const docs = snap.docs;
+      for(let i=0; i<docs.length; i+=450){
+        const batch = db.batch();
+        docs.slice(i, i+450).forEach(d=>batch.delete(d.ref));
+        await batch.commit();
+      }
+      alert(`${docs.length} élément(s) supprimé(s).`);
+    }catch(e){
+      alert("Erreur lors de la suppression : " + (e && e.message ? e.message : "réessaie."));
+    }
+  }
+
+  async function resetAllRdv(){
+    await deleteWholeCollection(
+      "rendezvous",
+      "SUPPRIMER",
+      `Ceci supprime DÉFINITIVEMENT les ${allDocs.length} rendez-vous enregistrés, avec tous leurs montants. Le CA et le planning repartiront de zéro.`
+    );
+  }
+
+  async function resetAllPointages(){
+    await deleteWholeCollection(
+      "pointages",
+      "SUPPRIMER",
+      `Ceci supprime DÉFINITIVEMENT les ${pointageDocs.length} fiches de pointage enregistrées (arrivées/départs).`
+    );
   }
 
   function auditDiffLines(before, after){
