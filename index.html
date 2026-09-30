@@ -1238,6 +1238,9 @@
     return {mins, label: `${h}h${String(m).padStart(2,"0")}`};
   }
 
+  // Écriture réelle du pointage — n'est appelée qu'après confirmation du mot de passe
+  // du compte connecté (voir confirmPointageChange ci-dessous), pour qu'une personne
+  // qui laisserait la page ouverte ne puisse pas trafiquer ses propres heures.
   async function savePointage(employee, field, value){
     if(!db) return;
     const id = pointageDocId(pointageDate, employee);
@@ -1249,6 +1252,87 @@
     }catch(e){
       alert("Erreur d'enregistrement du pointage : " + (e && e.message ? e.message : "réessaie."));
     }
+  }
+
+  let pendingPointageChange = null;
+
+  // La toute première saisie d'une heure (le champ était vide) s'enregistre directement,
+  // sans mot de passe — sinon la pointeuse deviendrait pénible à utiliser au quotidien.
+  // Le mot de passe n'est redemandé que pour MODIFIER une heure déjà enregistrée, ce qui
+  // est le seul cas où une fraude est possible (changer après coup une heure déjà pointée).
+  function confirmPointageChange(employee, field, value, inputEl){
+    const previousValue = inputEl.dataset.prev || "";
+    if(!previousValue){
+      inputEl.dataset.prev = value;
+      savePointage(employee, field, value);
+      return;
+    }
+    pendingPointageChange = {employee, field, value, previousValue, inputEl};
+    const fieldLabel = field === 'heureArrivee' ? "d'arrivée" : "de départ";
+    document.getElementById('modalRoot').innerHTML = `
+      <div class="modal-backdrop" onclick="if(event.target===this) cancelPointageChange()">
+        <div class="modal-card" style="max-width:380px;">
+          <div class="modal-title">Confirmation requise</div>
+          <div style="font-size:12.5px; color:var(--muted); font-weight:600; line-height:1.5; margin-bottom:14px;">
+            Pour modifier l'heure ${fieldLabel} de <b style="color:var(--text)">${escapeHtml(employee)}</b>, entre le mot de passe du compte connecté (${escapeHtml(currentUserName)}).
+          </div>
+          <label>Mot de passe</label>
+          <input type="password" id="ptConfirmPassword" autocomplete="current-password">
+          <div class="msg" id="ptConfirmMsg"></div>
+          <div class="modal-actions">
+            <button class="secondary" onclick="cancelPointageChange()">Annuler</button>
+            <button class="primary" id="ptConfirmBtn" onclick="submitPointageChange()">Confirmer</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('modalRoot').style.display = 'block';
+    if(document.body.style.position !== 'fixed') lockBodyScroll();
+    const pwField = document.getElementById('ptConfirmPassword');
+    pwField.focus();
+    pwField.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submitPointageChange(); });
+  }
+
+  function reauthErrorMsg(e){
+    const code = e && e.code || "";
+    if(code === "auth/wrong-password" || code === "auth/invalid-credential") return "Mot de passe incorrect.";
+    if(code === "auth/too-many-requests") return "Trop de tentatives, réessaie dans quelques minutes.";
+    if(code === "auth/network-request-failed") return "Pas de connexion internet.";
+    return "Échec de la confirmation, réessaie.";
+  }
+
+  async function submitPointageChange(){
+    if(!pendingPointageChange) return;
+    const pwd = document.getElementById('ptConfirmPassword').value;
+    const msg = document.getElementById('ptConfirmMsg');
+    const btn = document.getElementById('ptConfirmBtn');
+    if(!pwd){
+      msg.textContent = "Entre le mot de passe.";
+      msg.className = "msg err";
+      return;
+    }
+    btn.disabled = true;
+    try{
+      const user = auth.currentUser;
+      const cred = firebase.auth.EmailAuthProvider.credential(user.email, pwd);
+      await user.reauthenticateWithCredential(cred);
+      const change = pendingPointageChange;
+      pendingPointageChange = null;
+      closeModal();
+      await savePointage(change.employee, change.field, change.value);
+    }catch(e){
+      msg.textContent = reauthErrorMsg(e);
+      msg.className = "msg err";
+      btn.disabled = false;
+    }
+  }
+
+  function cancelPointageChange(){
+    if(pendingPointageChange && pendingPointageChange.inputEl){
+      pendingPointageChange.inputEl.value = pendingPointageChange.previousValue;
+    }
+    pendingPointageChange = null;
+    closeModal();
   }
 
   function shiftPointage(n){
@@ -1284,11 +1368,11 @@
           <div class="row2">
             <div>
               <label class="mini-label">Arrivée</label>
-              <div class="field-clip"><input type="time" value="${escapeHtml(arr)}" onchange="savePointage('${escapeHtml(emp)}','heureArrivee',this.value)"></div>
+              <div class="field-clip"><input type="time" value="${escapeHtml(arr)}" data-prev="${escapeHtml(arr)}" onchange="confirmPointageChange('${escapeHtml(emp)}','heureArrivee',this.value,this)"></div>
             </div>
             <div>
               <label class="mini-label">Départ</label>
-              <div class="field-clip"><input type="time" value="${escapeHtml(dep)}" onchange="savePointage('${escapeHtml(emp)}','heureDepart',this.value)"></div>
+              <div class="field-clip"><input type="time" value="${escapeHtml(dep)}" data-prev="${escapeHtml(dep)}" onchange="confirmPointageChange('${escapeHtml(emp)}','heureDepart',this.value,this)"></div>
             </div>
           </div>
         </div>
