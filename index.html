@@ -267,7 +267,7 @@
 <script>
   const PRESTATIONS = ["Manucure","Pédicure","Hammam","Massage","Coiffure","Épilation","Head Spa","Sur mesure"];
   const CUSTOM_CAT = "Sur mesure";
-  const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Jihane","Khadija"];
+  const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Jihane","Khadija","Bajihija"];
   const JOURS = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const COLORS = {
@@ -1256,12 +1256,26 @@
 
   let pendingPointageChange = null;
 
+  // Le sélecteur d'heure natif (surtout sur mobile) déclenche souvent plusieurs
+  // événements "change" coup sur coup pendant qu'on fait défiler les heures/minutes —
+  // pas un seul à la fin. Sans attendre, la demande de mot de passe s'ouvrait dès le
+  // premier tic de défilement, en pleine saisie, avant même d'avoir choisi la bonne heure.
+  // On attend donc un court instant sans nouveau changement avant d'agir, pour ne réagir
+  // qu'une fois la vraie valeur choisie.
+  function onPointageTimeChange(employee, field, inputEl){
+    clearTimeout(inputEl._pointageDebounce);
+    inputEl._pointageDebounce = setTimeout(()=>{
+      confirmPointageChange(employee, field, inputEl.value, inputEl);
+    }, 600);
+  }
+
   // La toute première saisie d'une heure (le champ était vide) s'enregistre directement,
   // sans mot de passe — sinon la pointeuse deviendrait pénible à utiliser au quotidien.
   // Le mot de passe n'est redemandé que pour MODIFIER une heure déjà enregistrée, ce qui
   // est le seul cas où une fraude est possible (changer après coup une heure déjà pointée).
   function confirmPointageChange(employee, field, value, inputEl){
     const previousValue = inputEl.dataset.prev || "";
+    if(value === previousValue) return; // rien n'a vraiment changé une fois l'interaction terminée
     if(!previousValue){
       inputEl.dataset.prev = value;
       savePointage(employee, field, value);
@@ -1368,11 +1382,11 @@
           <div class="row2">
             <div>
               <label class="mini-label">Arrivée</label>
-              <div class="field-clip"><input type="time" value="${escapeHtml(arr)}" data-prev="${escapeHtml(arr)}" onchange="confirmPointageChange('${escapeHtml(emp)}','heureArrivee',this.value,this)"></div>
+              <div class="field-clip"><input type="time" value="${escapeHtml(arr)}" data-prev="${escapeHtml(arr)}" onchange="onPointageTimeChange('${escapeHtml(emp)}','heureArrivee',this)"></div>
             </div>
             <div>
               <label class="mini-label">Départ</label>
-              <div class="field-clip"><input type="time" value="${escapeHtml(dep)}" data-prev="${escapeHtml(dep)}" onchange="confirmPointageChange('${escapeHtml(emp)}','heureDepart',this.value,this)"></div>
+              <div class="field-clip"><input type="time" value="${escapeHtml(dep)}" data-prev="${escapeHtml(dep)}" onchange="onPointageTimeChange('${escapeHtml(emp)}','heureDepart',this)"></div>
             </div>
           </div>
         </div>
