@@ -267,7 +267,7 @@
 <script>
   const PRESTATIONS = ["Manucure","Pédicure","Hammam","Massage","Coiffure","Épilation","Head Spa","Sur mesure"];
   const CUSTOM_CAT = "Sur mesure";
-  const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Jihane","Khadija","Bajihija"];
+  const EMPLOYEES = ["Hasna","Chaima","Fary","Edna","Mina","Soumaya","Maryam","Tidah","Oussama","Ingrid","Bajihija"];
   const JOURS = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
   const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const COLORS = {
@@ -292,6 +292,7 @@
     "Hammam": [
       {label:"Hammam Beldi (30 min)", price:200},
       {label:"Hammam Royal (45 min)", price:250},
+      {label:"Hammam (1h)", price:300},
       {label:"Hammam 30 min + Massage 30 min", price:400},
       {label:"Hammam 45 min + Massage 45 min", price:500},
       {label:"Hammam 1h + Massage 1h", price:600},
@@ -299,6 +300,7 @@
       {label:"BOA Spa Signature (2h)", price:1000}
     ],
     "Massage": [
+      {label:"Massage (45 min)", price:350},
       {label:"Massage Kobido (30 min)", price:500},
       {label:"Massage Kobido (1h)", price:1000},
       {label:"Massage Relaxant/Tonifiant (30 min)", price:300},
@@ -382,6 +384,24 @@
     "Manucure": ["Manucure Classique", "Pack Beauté Manucure"],
     "Pédicure": ["Pédicure Classique", "Pack Beauté Pédicure"]
   };
+
+  // Certaines prestations du catalogue sont en fait des formules à prix de groupe
+  // combinant DEUX soins distincts (ex: "Hammam 30 min + Massage 30 min") qui peuvent
+  // être faits par deux employées différentes. On le détecte simplement : un libellé
+  // de catalogue contenant " + " est une formule, et on en déduit les deux noms.
+  function splitComboLabel(label){
+    if(!label || !label.includes(" + ")) return null;
+    const parts = label.split(" + ").map(s=>s.trim());
+    if(parts.length !== 2 || !parts[0] || !parts[1]) return null;
+    // Si la durée entre parenthèses à la fin s'applique en fait aux deux prestations
+    // (ex: "Massage Thaï + Hammam (30 min)"), on la recopie sur la première aussi.
+    const trailingParen = parts[1].match(/\(([^)]+)\)\s*$/);
+    if(trailingParen && !/\([^)]+\)\s*$/.test(parts[0])){
+      parts[0] = parts[0] + " " + trailingParen[0];
+    }
+    return parts;
+  }
+
   let fBasePrice = null;
   let eBasePrice = null;
   // Panier de prestations sélectionnées (potentiellement dans plusieurs catégories
@@ -584,11 +604,14 @@
       <div class="cat-hint">${hint}</div>
       <div class="cat-list">
         ${items.map((it,idx)=>{
-          const count = cart.filter(c=>c.cat===cat && c.idx===idx).length;
+          // Une formule (ex: Hammam + Massage) donne DEUX lignes dans le panier, mais ne
+          // doit compter que pour une seule sélection — on ignore la "moitié B" du comptage.
+          const count = cart.filter(c=>c.cat===cat && c.idx===idx && c.comboRole!=='B').length;
           const isLockedSupp = it.label===SUPP_LABEL && bases && count===0 && !suppReady;
+          const isCombo = !!splitComboLabel(it.label);
           return `<div class="cat-item ${count>0?'selected':''} ${isLockedSupp?'disabled':''}" onclick="toggleCatalogueItem('${which}',${idx})">
             <span class="cat-check"></span>
-            <span class="cat-label">${escapeHtml(it.label)}</span>
+            <span class="cat-label">${escapeHtml(it.label)}${isCombo?' <span style="opacity:.6; font-weight:600;">(formule à 2 employées)</span>':''}</span>
             ${count>1?`<span class="cat-count">×${count}</span>`:''}
             <span class="price">${it.price} MAD</span>
           </div>`;
@@ -634,6 +657,8 @@
     const rows = cart.map((item,i)=>{
       const finalPrice = itemFinalPrice(item);
       total += finalPrice;
+      const isCombo = !!item.comboGroupId;
+      const partner = isCombo ? cart.find(c=>c.comboGroupId===item.comboGroupId && c!==item) : null;
       return `
         <div class="cart-item">
           <div class="cart-item-head">
@@ -641,6 +666,7 @@
             <span class="cart-item-price" id="fCartPrice${i}">${finalPrice} MAD</span>
             <span class="x" onclick="removeCartItem('f',${i})">×</span>
           </div>
+          ${isCombo ? `<div class="cat-hint" style="margin:0 0 8px;">Formule à prix de groupe (${item.comboTotal} MAD au total avec ${escapeHtml(partner?partner.label:"l'autre prestation")}) — ajuste la part de chacune si besoin.</div>` : ''}
           <label class="mini-label">Employée</label>
           <select onchange="updateCartItem(${i},'employee',this.value)">
             <option value="">Choisir…</option>
@@ -651,6 +677,10 @@
             <div class="field-clip"><input type="time" value="${escapeHtml(item.heureDebut||"")}" onchange="updateCartItem(${i},'heureDebut',this.value)"></div>
             <div class="field-clip"><input type="time" value="${escapeHtml(item.heureFin||"")}" onchange="updateCartItem(${i},'heureFin',this.value)"></div>
           </div>
+          ${isCombo ? `
+          <label class="mini-label">Part du prix de cette employée (sur ${item.comboTotal} MAD)</label>
+          <input type="number" inputmode="decimal" id="fComboSplit${i}" value="${item.price}" oninput="updateComboSplit(${i},this.value)">
+          ` : `
           <label class="mini-label">Réduction <span style="text-transform:none; font-weight:600; opacity:.7;">(facultatif)</span></label>
           <div class="reduc-row mini">
             <div class="seg" data-type="${item.reducType}">
@@ -659,6 +689,7 @@
             </div>
             <input type="number" inputmode="decimal" placeholder="0" value="${item.reducValue||""}" oninput="updateCartItem(${i},'reducValue',this.value)">
           </div>
+          `}
         </div>
       `;
     }).join("");
@@ -726,6 +757,32 @@
     }
   }
 
+  // Les deux moitiés d'une formule (ex: Hammam + Massage) doivent toujours additionner
+  // exactement le prix de groupe affiché au client — modifier la part de l'une recalcule
+  // automatiquement l'autre, pour que le total ne puisse jamais dériver.
+  function updateComboSplit(i, newValue){
+    const item = fCart[i];
+    if(!item || !item.comboGroupId) return;
+    let val = parseFloat(newValue);
+    if(isNaN(val) || val < 0) val = 0;
+    if(val > item.comboTotal) val = item.comboTotal;
+    val = Math.round(val*100)/100;
+    item.price = val;
+    const partnerIdx = fCart.findIndex((c,idx)=>idx!==i && c.comboGroupId===item.comboGroupId);
+    if(partnerIdx !== -1){
+      fCart[partnerIdx].price = Math.round((item.comboTotal - val)*100)/100;
+    }
+    const priceEl = document.getElementById('fCartPrice'+i);
+    if(priceEl) priceEl.textContent = itemFinalPrice(item) + ' MAD';
+    if(partnerIdx !== -1){
+      const partnerPriceEl = document.getElementById('fCartPrice'+partnerIdx);
+      if(partnerPriceEl) partnerPriceEl.textContent = itemFinalPrice(fCart[partnerIdx]) + ' MAD';
+      const partnerInput = document.getElementById('fComboSplit'+partnerIdx);
+      if(partnerInput) partnerInput.value = fCart[partnerIdx].price;
+    }
+    updateCartTotals();
+  }
+
   function updateCartTotals(){
     const groups = groupCartPreview(fCart);
     const total = Math.round(fCart.reduce((s,c)=>s+itemFinalPrice(c), 0) * 100) / 100;
@@ -765,10 +822,21 @@
     }
 
     if(which === 'f'){
-      // Nouveau RDV : chaque touche ajoute une prestation supplémentaire au panier
-      // (utile quand plusieurs personnes prennent la même prestation ce jour-là) —
-      // pour en retirer une, on utilise la croix sur sa fiche dans le panier.
-      cart.push({cat, idx, label:item.label, price:item.price, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0});
+      const comboParts = splitComboLabel(item.label);
+      if(comboParts){
+        // Formule à prix de groupe (ex: Hammam + Massage) : on crée deux lignes liées,
+        // une par prestation, pour que chacune ait sa propre employée/horaire — par
+        // défaut le prix de groupe est partagé en deux, ajustable ensuite dans le panier.
+        const comboGroupId = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+        const half = Math.round((item.price/2)*100)/100;
+        cart.push({cat, idx, label:comboParts[0], price:half, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0, comboGroupId, comboRole:'A', comboTotal:item.price});
+        cart.push({cat, idx, label:comboParts[1], price:Math.round((item.price-half)*100)/100, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0, comboGroupId, comboRole:'B', comboTotal:item.price});
+      } else {
+        // Nouveau RDV : chaque touche ajoute une prestation supplémentaire au panier
+        // (utile quand plusieurs personnes prennent la même prestation ce jour-là) —
+        // pour en retirer une, on utilise la croix sur sa fiche dans le panier.
+        cart.push({cat, idx, label:item.label, price:item.price, employee:"", heureDebut:"", heureFin:"", reducType:"MAD", reducValue:0});
+      }
     } else {
       // Fenêtre de modification : un seul rendez-vous, donc on garde la sélection
       // simple (toucher à nouveau retire la prestation).
@@ -809,9 +877,18 @@
   }
 
   function removeCartItem(which, cartIndex){
-    const cart = which==='f' ? fCart : eCart;
+    let cart = which==='f' ? fCart : eCart;
     const removed = cart[cartIndex];
-    cart.splice(cartIndex, 1);
+    if(!removed) return;
+    if(removed.comboGroupId){
+      // Les deux moitiés d'une formule (ex: Hammam + Massage) ne font qu'un seul achat —
+      // en retirer une retire forcément l'autre aussi.
+      cart = cart.filter(c => c.comboGroupId !== removed.comboGroupId);
+    } else {
+      cart = cart.slice();
+      cart.splice(cartIndex, 1);
+    }
+    if(which==='f') fCart = cart; else eCart = cart;
     // Si on vient de retirer une prestation qui donnait droit au supplément vernis
     // et qu'il n'en reste plus aucune de ce type, le supplément n'a plus lieu
     // d'être : on l'enlève aussi.
