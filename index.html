@@ -1753,7 +1753,7 @@
     });
 
     const rows = EMPLOYEES.map(e=>`
-      <tr>
+      <tr style="cursor:pointer;" onclick="openEmployeeHistory('${escapeHtml(e)}')">
         <td>${escapeHtml(e)}</td>
         <td class="num">${fmtMoney(perEmp[e].today)}</td>
         <td class="num">${fmtMoney(perEmp[e].week)}</td>
@@ -1802,6 +1802,7 @@
       </div>
       <div class="card">
         <div class="card-title"><span class="dot" style="background:var(--accent-2)"></span>Détail par employée</div>
+        <div style="font-size:11px; color:var(--muted); font-weight:600; margin:-4px 0 10px;">Touche une employée pour voir le détail de ses prestations du mois en cours.</div>
         <div style="overflow-x:auto;">
         <table>
           <thead><tr><th>Employée</th><th style="text-align:right">Jour</th><th style="text-align:right">Sem.</th><th style="text-align:right">Mois</th><th style="text-align:right">Total</th></tr></thead>
@@ -1836,6 +1837,57 @@
       </div>
     `;
     updatePeriodPreview();
+  }
+
+  // Historique du mois pour une employée : toutes les prestations qu'elle a
+  // effectuées ce mois-ci, triées de la plus récente à la plus ancienne, avec le
+  // total correspondant (celui déjà affiché dans la colonne "Mois" du tableau).
+  function openEmployeeHistory(employee){
+    const t = todayStr();
+    const m = monthPrefix(t);
+    const [y, mo] = m.split("-").map(Number);
+    const monthLabel = (MOIS[mo-1]||"") + " " + y;
+
+    const docs = allDocs
+      .filter(d => d.employee === employee && (d.date||"").startsWith(m))
+      .sort((a,b) => (b.date+"T"+(b.heure||"")).localeCompare(a.date+"T"+(a.heure||"")));
+
+    const total = Math.round(docs.reduce((s,d)=>s+(d.montant||0), 0) * 100) / 100;
+
+    const rowsHtml = docs.map(d => {
+      const [dy,dm,dd] = (d.date||"").split("-");
+      const dateLabel = (dd&&dm) ? `${dd}/${dm}` : "—";
+      return `<tr style="cursor:pointer;" onclick="closeModal(); openEditRdv('${d.id}')">
+        <td>${escapeHtml(dateLabel)}</td>
+        <td>${escapeHtml(d.heure||"—")}</td>
+        <td>${escapeHtml(d.cliente||"—")}</td>
+        <td>${escapeHtml(d.prestationDetail||d.prestation||"—")}</td>
+        <td class="num">${fmtMoney(d.montant||0)}</td>
+      </tr>`;
+    }).join("");
+
+    document.getElementById('modalRoot').innerHTML = `
+      <div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+        <div class="modal-card">
+          <div class="modal-title">Historique de ${escapeHtml(employee)}</div>
+          <div style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:14px;">${escapeHtml(monthLabel)}</div>
+          ${docs.length === 0 ? `<div class="empty">Aucune prestation ce mois-ci pour ${escapeHtml(employee)}.</div>` : `
+          <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Date</th><th>Heure</th><th>Cliente</th><th>Prestation</th><th style="text-align:right">Montant</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+          </div>
+          <div class="cart-total" style="margin-top:14px;">Total du mois : ${fmtMoney(total)}</div>
+          `}
+          <div class="modal-actions">
+            <button class="secondary" onclick="closeModal()">Fermer</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('modalRoot').style.display = 'block';
+    if(document.body.style.position !== 'fixed') lockBodyScroll();
   }
 
   // Supprime une collection entière, par lots de 450 (limite Firestore : 500 opérations
