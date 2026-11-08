@@ -477,6 +477,12 @@
   let unsubPointage = null;
   let planningDate = todayStr();
   let pointageDate = todayStr();
+  // Mémorise une recherche manuelle par période dans le CA (Du/Au), pour qu'elle ne
+  // soit pas effacée par les mises à jour en temps réel pendant qu'on la consulte —
+  // mais elle n'est jamais conservée au-delà : si on se déconnecte ou qu'on recharge
+  // la page, le CA repart automatiquement sur le mois en cours (voir doLogout()).
+  let caPeriodFrom = null;
+  let caPeriodTo = null;
 
   function todayStr(){
     const d = new Date();
@@ -495,6 +501,12 @@
     return fmtIso(d);
   }
   function monthPrefix(iso){ return iso.slice(0,7); }
+  function monthRange(iso){
+    const d = parseIso(iso);
+    const first = new Date(d.getFullYear(), d.getMonth(), 1);
+    const last = new Date(d.getFullYear(), d.getMonth()+1, 0);
+    return {start: fmtIso(first), end: fmtIso(last)};
+  }
   function weekRange(iso){
     const d = parseIso(iso);
     const day = d.getDay();
@@ -543,6 +555,11 @@
   function updatePeriodPreview(){
     const from = (document.getElementById('periodFrom')||{}).value;
     const to = (document.getElementById('periodTo')||{}).value;
+    // On retient la période choisie à la main, pour qu'un rafraîchissement en temps
+    // réel (nouveau rendez-vous enregistré pendant qu'on regarde le CA) ne la remette
+    // pas sur le mois en cours tant qu'on n'a pas quitté la page.
+    caPeriodFrom = from || null;
+    caPeriodTo = to || null;
     const lblEl = document.getElementById('periodLabel');
     const valEl = document.getElementById('periodVal');
     if(!lblEl || !valEl) return;
@@ -1776,9 +1793,14 @@
       return `<tr><td>${escapeHtml(label)}</td><td class="num">${fmtMoney(monthMap[k])}</td></tr>`;
     }).join("");
 
-    const allDatesSorted = allDocs.map(d=>d.date).filter(Boolean).sort();
-    const minDate = allDatesSorted[0] || todayStr();
-    const maxDate = allDatesSorted[allDatesSorted.length-1] || todayStr();
+    // Par défaut, la recherche par période se replie sur le mois en cours (et non
+    // sur tout l'historique) — sinon le total affiché est un cumul de tout ce qui a
+    // été enregistré depuis le début, ce qui n'est pas ce qu'on veut voir d'un coup
+    // d'œil. Une recherche manuelle (caPeriodFrom/caPeriodTo) reste prioritaire tant
+    // qu'on ne quitte pas la page ou qu'on ne se déconnecte pas (voir doLogout()).
+    const curMonth = monthRange(todayStr());
+    const periodFromDefault = caPeriodFrom || curMonth.start;
+    const periodToDefault = caPeriodTo || curMonth.end;
 
     document.getElementById('viewCa').innerHTML = `
       <div class="card-title"><span class="dot"></span>CA de l'institut (toutes employées confondues)</div>
@@ -1791,8 +1813,8 @@
       <div class="card">
         <div class="card-title"><span class="dot" style="background:var(--accent-3)"></span>CA sur une période</div>
         <div class="row2">
-          <div><label>Du</label><input type="date" id="periodFrom" value="${minDate}" onchange="updatePeriodPreview()"></div>
-          <div><label>Au</label><input type="date" id="periodTo" value="${maxDate}" onchange="updatePeriodPreview()"></div>
+          <div><label>Du</label><input type="date" id="periodFrom" value="${periodFromDefault}" onchange="updatePeriodPreview()"></div>
+          <div><label>Au</label><input type="date" id="periodTo" value="${periodToDefault}" onchange="updatePeriodPreview()"></div>
         </div>
         <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; margin-top:14px;">
           <div id="periodLabel" style="font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">—</div>
@@ -2039,6 +2061,10 @@
     if(unsub){ unsub(); unsub = null; }
     if(unsubAudit){ unsubAudit(); unsubAudit = null; }
     if(unsubPointage){ unsubPointage(); unsubPointage = null; }
+    // Une recherche par période manuelle ne doit jamais survivre à une déconnexion —
+    // la prochaine connexion doit repartir sur le mois en cours.
+    caPeriodFrom = null;
+    caPeriodTo = null;
     auth.signOut();
   }
 
